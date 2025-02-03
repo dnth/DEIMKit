@@ -13,7 +13,7 @@ DEIM:
   encoder: HybridEncoder
   decoder: DFINETransformer
 
-# Add, default for step lr scheduler 
+# Add, default for step lr scheduler
 lrsheduler: flatcosine
 lr_gamma: 1
 warmup_iter: 500

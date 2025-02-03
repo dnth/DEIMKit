@@ -1,6 +1,6 @@
 # Dense O2O
-train_dataloader: 
-  dataset: 
+train_dataloader:
+  dataset:
     transforms:
       ops:
         - {type: Mosaic, output_size: 320, rotation_range: 10, translation_range: [0.1, 0.1], scaling_range: [0.5, 1.5],
@@ -9,13 +9,13 @@ train_dataloader:
         - {type: RandomZoomOut, fill: 0}
         - {type: RandomIoUCrop, p: 0.8}
         - {type: SanitizeBoundingBoxes, min_size: 1}
-        - {type: RandomHorizontalFlip}
+        # - {type: RandomHorizontalFlip}
         - {type: Resize, size: [640, 640], }
         - {type: SanitizeBoundingBoxes, min_size: 1}
         - {type: ConvertPILImage, dtype: 'float32', scale: True}
         - {type: ConvertBoxes, fmt: 'cxcywh', normalize: True}
       policy:
-        epoch: [4, 29, 50]   # list 
+        epoch: [4, 29, 50]   # list
         ops: ['Mosaic', 'RandomPhotometricDistort', 'RandomZoomOut', 'RandomIoUCrop']
       mosaic_prob: 0.5
 

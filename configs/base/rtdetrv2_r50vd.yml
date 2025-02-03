@@ -8,13 +8,13 @@ use_focal_loss: True
 eval_spatial_size: [640, 640] # h w
 checkpoint_freq: 4    # save freq
 
-DEIM: 
+DEIM:
   backbone: PResNet
   encoder: HybridEncoder
   decoder: RTDETRTransformerv2
-  
 
-# Add, default for step lr scheduler 
+
+# Add, default for step lr scheduler
 lrsheduler: flatcosine
 lr_gamma: 1
 warmup_iter: 2000
@@ -28,7 +28,7 @@ PResNet:
   return_idx: [1, 2, 3]
   num_stages: 4
   freeze_norm: True
-  pretrained: True 
+  pretrained: True
   local_model_dir: ../RT-DETR-main/rtdetrv2_pytorch/INK1k/
 
 
@@ -44,7 +44,7 @@ HybridEncoder:
   dim_feedforward: 1024
   dropout: 0.
   enc_act: 'gelu'
-  
+
   # cross
   expansion: 1.0
   depth_mult: 1
@@ -67,10 +67,10 @@ RTDETRTransformerv2:
 
   eval_idx: -1
 
-  # NEW, can be chosen 
+  # NEW, can be chosen
   num_points: [4, 4, 4]     # [3,3,3] [2,2,2]
   cross_attn_method: default  # default, discrete
-  query_select_method: default  # default, agnostic 
+  query_select_method: default  # default, agnostic
 
 
 PostProcessor:
