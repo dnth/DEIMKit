@@ -138,3 +138,4 @@ dmypy.json
 .DS_Store
 
 tools/dataset/wholebody28/
+DEIM.tar.gz
