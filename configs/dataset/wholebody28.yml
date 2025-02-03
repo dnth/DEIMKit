@@ -12,7 +12,7 @@ train_dataloader:
   dataset:
     type: CocoDetection
     img_folder: ./tools/dataset/wholebody28/images/
-    ann_file: ./tools/dataset/wholebody25/annotations/train.json
+    ann_file: ./tools/dataset/wholebody28/annotations/train.json
     return_masks: False
     transforms:
       type: Compose
@@ -29,7 +29,7 @@ val_dataloader:
   dataset:
     type: CocoDetection
     img_folder: ./tools/dataset/wholebody28/images/
-    ann_file: ./tools/dataset/wholebody25/annotations/val.json
+    ann_file: ./tools/dataset/wholebody28/annotations/val.json
     return_masks: False
     transforms:
       type: Compose
