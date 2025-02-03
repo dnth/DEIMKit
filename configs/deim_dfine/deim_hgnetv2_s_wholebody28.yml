@@ -21,7 +21,7 @@ optimizer:
 
 
 # Increase to search for the optimal ema
-epoches: 132 # 120 + 4n
+epoches: 150 # 120 + 4n
 
 ## Our LR-Scheduler
 flat_epoch: 64    # 4 + epoch // 2, e.g., 40 = 4 + 72 / 2
