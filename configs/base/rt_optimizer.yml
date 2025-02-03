@@ -6,7 +6,7 @@ ema:
   warmups: 2000
   start: 0
 
-epoches: 72
+epoches: 110
 clip_max_norm: 0.1
 
 train_dataloader:
