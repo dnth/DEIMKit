@@ -56,9 +56,9 @@
     Need to organize the data accordingly.
     Start to read train dataset definition
     Start to read val dataset definition
-    [>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>] 12186/12186, 475.5 task/s, elapsed: 26s, ETA:     0s
+    [>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>] 12186/12186, 463.5 task/s, elapsed: 26s, ETA:     0s
     Saving converted results to wholebody28/annotations/train.json ...
     Saving converted results to wholebody28/annotations/val.json ...
     Process finished! Please check at wholebody28/annotations .
-    Number of images found: 12186, converted: 12186, and skipped: 0. Total annotation count: 530268.
+    Number of images found: 12186, converted: 12186, and skipped: 0. Total annotation count: 717921.
     ```
