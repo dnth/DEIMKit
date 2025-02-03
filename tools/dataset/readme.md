@@ -1,6 +1,8 @@
 - yolov9 structure to train.txt,val.txt
 
     ```
+    cd tools/dataset
+
     python yolov9_dataset_to_txt.py --dataset_name wholebody28
     ```
 
