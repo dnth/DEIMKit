@@ -3,7 +3,7 @@ __include__: [
   '../base/deim.yml'
 ]
 
-output_dir: ./outputs/deim_hgnetv2_m_coco
+output_dir: ./outputs/deim_hgnetv2_m_wholebody28
 
 optimizer:
   type: AdamW
