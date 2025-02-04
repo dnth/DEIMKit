@@ -249,7 +249,7 @@ CUDA_VISIBLE_DEVICES=0 torchrun --master_port=7777 --nproc_per_node=1 train.py -
 CUDA_VISIBLE_DEVICES=0 torchrun --master_port=7777 --nproc_per_node=1 train.py -c configs/deim_dfine/dfine_hgnetv2_x_wholebody28.yml -r output/dfine_hgnetv2_x_wholebody28/last.pth --use-amp --seed=0 &> log.txt 2>&1 &
 tail -n 20 -f log.txt
 
-ps aux | grep python3 /usr/bin/torchrun
+ps aux | grep /usr/bin/torchrun
 kill xxxxx
 ```
 
