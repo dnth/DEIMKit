@@ -20,7 +20,7 @@ optimizer:
   weight_decay: 0.0000125 #0.000125
 
 # Increase to search for the optimal ema
-epoches: 80 # 72 + 2n
+epoches: 90 # 72 + 2n
 
 ## Our LR-Scheduler
 flat_epoch: 29    # 4 + epoch // 2, e.g., 40 = 4 + 72 / 2
