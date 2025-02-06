@@ -51,7 +51,7 @@ DFINETransformer:
 
   num_layers: 6
   eval_idx: -1
-  num_queries: 300
+  num_queries: 1250
 
   num_denoising: 100
   label_noise_ratio: 0.5
@@ -73,7 +73,7 @@ DFINETransformer:
 
 
 PostProcessor:
-  num_top_queries: 300
+  num_top_queries: 1250
 
 
 DEIMCriterion:
