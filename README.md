@@ -301,6 +301,9 @@ CUDA_VISIBLE_DEVICES=0 torchrun \
 --use-amp --seed=0 &> log.txt 2>&1 &
 
 tail -n 20 -f log.txt
+
+ps aux | grep /usr/bin/torchrun
+kill xxxxx
 ```
 </details>
 
