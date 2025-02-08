@@ -483,6 +483,7 @@ bash reference/safe_training.sh
 python tools/reference/convert_weight.py \
 deim_hgnetv2_x_wholebody28_300query/deim_hgnetv2_x_wholebody28
 ```
+![image](https://github.com/user-attachments/assets/d93dc98d-9b7a-4fbb-b50d-0bf9186ffdd7)
 </details>
 
 
