@@ -393,6 +393,7 @@ pip install onnx onnxsim
 ```shell
 python tools/deployment/export_onnx.py \
 --check \
+--query 300 \
 -c configs/deim_dfine/deim_hgnetv2_x_wholebody28.yml \
 -r outputs/deim_hgnetv2_x_wholebody28/best_stg2.pth
 
