@@ -397,6 +397,14 @@ python tools/deployment/export_onnx.py \
 -c configs/deim_dfine/deim_hgnetv2_x_wholebody28.yml \
 -r outputs/deim_hgnetv2_x_wholebody28/best_stg2.pth
 
+python tools/deployment/export_onnx.py \
+--check \
+--query 300 \
+--dynamic_batch \
+-c configs/deim_dfine/deim_hgnetv2_x_wholebody28.yml \
+-r outputs/deim_hgnetv2_x_wholebody28/best_stg2.pth
+
+#################
 ONNXSIM_FIXED_POINT_ITERS=10000 onnxsim best_stg2.onnx best_stg2.onnx \
 --overwrite-input-shape "images:1,3,640,640" "orig_target_sizes:1,2"
 ```
