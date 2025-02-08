@@ -480,7 +480,8 @@ bash reference/safe_training.sh
 
 2. Converting Model Weights (Extract and save only the EMA weights.)
 ```shell
-python tools/reference/convert_weight.py deim_hgnetv2_x_wholebody28_300query/deim_hgnetv2_x_wholebody28
+python tools/reference/convert_weight.py \
+deim_hgnetv2_x_wholebody28_300query/deim_hgnetv2_x_wholebody28
 ```
 </details>
 
