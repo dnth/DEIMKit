@@ -137,7 +137,9 @@ dmypy.json
 *.html
 .DS_Store
 
+deim_hgnetv2_x_wholebody28_300query/
 tools/dataset/wholebody28/
 tools/dataset/wholebody28_1/
 tools/dataset/wholebody28_2/
-DEIM.tar.gz
+outputs/
+*.tar.gz
