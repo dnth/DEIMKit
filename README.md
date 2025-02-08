@@ -391,7 +391,13 @@ pip install onnx onnxsim
 
 2. Export onnx
 ```shell
-python tools/deployment/export_onnx.py --check -c configs/deim_dfine/deim_hgnetv2_${model}_coco.yml -r model.pth
+python tools/deployment/export_onnx.py \
+--check \
+-c configs/deim_dfine/deim_hgnetv2_x_wholebody28.yml \
+-r outputs/deim_hgnetv2_x_wholebody28/best_stg2.pth
+
+ONNXSIM_FIXED_POINT_ITERS=10000 onnxsim best_stg2.onnx best_stg2.onnx \
+--overwrite-input-shape "images:1,3,640,640" "orig_target_sizes:1,2"
 ```
 
 3. Export [tensorrt](https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html)
