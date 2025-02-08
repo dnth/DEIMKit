@@ -240,62 +240,73 @@ To train on your custom dataset, you need to organize it in the COCO format. Fol
 <summary> COCO2017 </summary>
 
 1. Training
-```shell
-pip install -r requirements.txt
-
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --master_port=7777 --nproc_per_node=4 train.py -c configs/deim_dfine/deim_hgnetv2_${model}_coco.yml --use-amp --seed=0
-
-CUDA_VISIBLE_DEVICES=0 torchrun \
---master_port=7777 \
---nproc_per_node=1 \
-train.py \
--c configs/deim_dfine/deim_hgnetv2_x_wholebody28.yml \
---use-amp \
---seed=0 &> log.txt 2>&1 &
-
-CUDA_VISIBLE_DEVICES=0 torchrun \
---master_port=7777 \
---nproc_per_node=1 \
-train.py \
--c configs/deim_dfine/deim_hgnetv2_x_wholebody28.yml \
--r outputs/deim_hgnetv2_x_wholebody28/last.pth \
---use-amp --seed=0 &> log.txt 2>&1 &
-
-tail -n 20 -f log.txt
-
-ps aux | grep /usr/bin/torchrun
-kill xxxxx
-```
+    ```shell
+    pip install -r requirements.txt
+    
+    rm -rf tools/dataset/wholebody28
+    cp -r tools/dataset/wholebody28_1 tools/dataset/wholebody28
+    
+    CUDA_VISIBLE_DEVICES=0 torchrun \
+    --master_port=7777 \
+    --nproc_per_node=1 \
+    train.py \
+    -c configs/deim_dfine/deim_hgnetv2_x_wholebody28.yml \
+    --use-amp \
+    --seed=0 &> log.txt 2>&1 &
+    
+    CUDA_VISIBLE_DEVICES=0 torchrun \
+    --master_port=7777 \
+    --nproc_per_node=1 \
+    train.py \
+    -c configs/deim_dfine/deim_hgnetv2_x_wholebody28.yml \
+    -r outputs/deim_hgnetv2_x_wholebody28/last.pth \
+    --use-amp --seed=0 &> log.txt 2>&1 &
+    
+    tail -n 20 -f log.txt
+    
+    ps aux | grep /usr/bin/torchrun
+    kill xxxxx
+    ```
 
 <!-- <summary>2. Testing </summary> -->
 2. Testing
-```shell
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --master_port=7777 --nproc_per_node=4 train.py -c configs/deim_dfine/deim_hgnetv2_${model}_coco.yml --test-only -r model.pth
-```
+    ```shell
+    CUDA_VISIBLE_DEVICES=0 torchrun \
+    --master_port=7777 \
+    --nproc_per_node=1 \
+    train.py \
+    -c configs/deim_dfine/deim_hgnetv2_x_wholebody28.yml \
+    --test-only \
+    -r outputs/deim_hgnetv2_x_wholebody28/best_stg2.pth
+    ```
 
 <!-- <summary>3. Tuning </summary> -->
 3. Tuning
-```shell
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --master_port=7777 --nproc_per_node=4 train.py -c configs/deim_dfine/deim_hgnetv2_${model}_coco.yml --use-amp --seed=0 -t model.pth
-
-CUDA_VISIBLE_DEVICES=0 torchrun \
---master_port=7777 \
---nproc_per_node=1 \
-train.py \
--c configs/deim_dfine/deim_hgnetv2_x_wholebody28_ft.yml \
---use-amp \
---seed=0 \
--t outputs/deim_hgnetv2_x_wholebody28/last.pth &> log.txt 2>&1 &
-
-CUDA_VISIBLE_DEVICES=0 torchrun \
---master_port=7777 \
---nproc_per_node=1 train.py \
--c configs/deim_dfine/deim_hgnetv2_x_wholebody28_ft.yml \
--r outputs/deim_hgnetv2_x_wholebody28_ft/last.pth \
---use-amp --seed=0 &> log.txt 2>&1 &
-
-tail -n 20 -f log.txt
-```
+    ```shell
+    rm -rf tools/dataset/wholebody28
+    cp -r tools/dataset/wholebody28_2 tools/dataset/wholebody28
+    
+    CUDA_VISIBLE_DEVICES=0 torchrun \
+    --master_port=7777 \
+    --nproc_per_node=1 \
+    train.py \
+    -c configs/deim_dfine/deim_hgnetv2_x_wholebody28_ft.yml \
+    --use-amp \
+    --seed=0 \
+    -t outputs/deim_hgnetv2_x_wholebody28/best_stg2.pth &> log.txt 2>&1 &
+    
+    CUDA_VISIBLE_DEVICES=0 torchrun \
+    --master_port=7777 \
+    --nproc_per_node=1 train.py \
+    -c configs/deim_dfine/deim_hgnetv2_x_wholebody28_ft.yml \
+    -r outputs/deim_hgnetv2_x_wholebody28_ft/last.pth \
+    --use-amp --seed=0 &> log.txt 2>&1 &
+    
+    tail -n 20 -f log.txt
+    
+    ps aux | grep /usr/bin/torchrun
+    kill xxxxx
+    ```
 </details>
 
 <details>
