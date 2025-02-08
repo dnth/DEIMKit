@@ -380,7 +380,7 @@ If you'd like to train **DEIM** on COCO2017 with an input size of 320x320, follo
 </details>
 
 ## 4. Tools
-<details>
+<details open>
 <summary> Deployment </summary>
 
 <!-- <summary>4. Export onnx </summary> -->
