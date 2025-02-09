@@ -470,7 +470,7 @@ python tools/visualization/fiftyone_vis.py -c configs/deim_dfine/deim_hgnetv2_${
 ```
 </details>
 
-<details>
+<details open>
 <summary> Others </summary>
 
 1. Auto Resume Training
@@ -478,10 +478,12 @@ python tools/visualization/fiftyone_vis.py -c configs/deim_dfine/deim_hgnetv2_${
 bash reference/safe_training.sh
 ```
 
-2. Converting Model Weights
+2. Converting Model Weights (Extract and save only the EMA weights.)
 ```shell
-python reference/convert_weight.py model.pth
+python tools/reference/convert_weight.py \
+deim_hgnetv2_x_wholebody28_300query/deim_hgnetv2_x_wholebody28
 ```
+![image](https://github.com/user-attachments/assets/d93dc98d-9b7a-4fbb-b50d-0bf9186ffdd7)
 </details>
 
 
