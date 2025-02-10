@@ -46,33 +46,43 @@ def main(args, ):
 
         def forward(self, images, orig_target_sizes):
             outputs = self.model(images)
-            outputs = self.postprocessor(outputs, orig_target_sizes)
+            outputs = self.postprocessor(outputs)
             return outputs
 
     model = Model()
 
-    data = torch.rand(32, 3, 640, 640)
-    size = torch.tensor([[640, 640]])
+    h, w = args.size
+    data = torch.rand(1, 3, h, w)
+    size = torch.tensor([[h, w]])
     _ = model(data, size)
 
     dynamic_axes = {
         'images': {0: 'N', },
-        'orig_target_sizes': {0: 'N'}
+        'label_xyxy_score': {0: 'N', 1: '1250', 2: '6'},
     }
 
-    output_file = args.resume.replace('.pth', '.onnx') if args.resume else 'model.onnx'
+    output_file = f'{os.path.splitext(os.path.basename(args.config))[0]}_{args.query}query.onnx'
 
-    torch.onnx.export(
-        model,
-        (data, size),
-        output_file,
-        input_names=['images', 'orig_target_sizes'],
-        output_names=['labels', 'boxes', 'scores'],
-        dynamic_axes=dynamic_axes,
-        opset_version=16,
-        verbose=False,
-        do_constant_folding=True,
-    )
+    if not args.dynamic_batch:
+        torch.onnx.export(
+            model,
+            (data, size),
+            output_file,
+            input_names=['images'],
+            output_names=['label_xyxy_score'],
+            dynamic_axes=None,
+            opset_version=17,
+        )
+    else:
+        torch.onnx.export(
+            model,
+            (data, size),
+            f'{os.path.splitext(os.path.basename(output_file))[0]}_n_batch.onnx',
+            input_names=['images'],
+            output_names=['label_xyxy_score'],
+            dynamic_axes=dynamic_axes,
+            opset_version=17,
+        )
 
     if args.check:
         import onnx
@@ -83,21 +93,26 @@ def main(args, ):
     if args.simplify:
         import onnx
         import onnxsim
-        dynamic = True
-        # input_shapes = {'images': [1, 3, 640, 640], 'orig_target_sizes': [1, 2]} if dynamic else None
-        input_shapes = {'images': data.shape, 'orig_target_sizes': size.shape} if dynamic else None
-        onnx_model_simplify, check = onnxsim.simplify(output_file, test_input_shapes=input_shapes)
-        onnx.save(onnx_model_simplify, output_file)
-        print(f'Simplify onnx model {check}...')
 
+        if not args.dynamic_batch:
+            onnx_model_simplify, check = onnxsim.simplify(output_file)
+            onnx.save(onnx_model_simplify, output_file)
+            print(f'Simplify onnx model {check}...')
+        else:
+            onnx_model_simplify, check = onnxsim.simplify(f'{os.path.splitext(os.path.basename(output_file))[0]}_n_batch.onnx')
+            onnx.save(onnx_model_simplify, f'{os.path.splitext(os.path.basename(output_file))[0]}_n_batch.onnx')
+            print(f'Simplify onnx model {check}...')
 
 if __name__ == '__main__':
 
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', '-c', default='configs/dfine/dfine_hgnetv2_l_coco.yml', type=str, )
+    parser.add_argument('--config', '-c', default='configs/deim_dfine/deim_hgnetv2_x_wholebody28.yml', type=str, )
     parser.add_argument('--resume', '-r', type=str, )
+    parser.add_argument('--size', '-s', nargs="*", default=[640,640], type=int, )
     parser.add_argument('--check',  action='store_true', default=True,)
     parser.add_argument('--simplify',  action='store_true', default=True,)
+    parser.add_argument('--dynamic_batch',  action='store_true', default=False,)
+    parser.add_argument('--query', '-q', type=int, default=1250)
     args = parser.parse_args()
     main(args)

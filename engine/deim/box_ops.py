@@ -16,10 +16,13 @@ def box_cxcywh_to_xyxy(x):
 
 
 def box_xyxy_to_cxcywh(x: Tensor) -> Tensor:
-    x0, y0, x1, y1 = x.unbind(-1)
+    x0 = x[..., 0:1]
+    y0 = x[..., 1:2]
+    x1 = x[..., 2:3]
+    y1 = x[..., 3:4]
     b = [(x0 + x1) / 2, (y0 + y1) / 2,
          (x1 - x0), (y1 - y0)]
-    return torch.stack(b, dim=-1)
+    return torch.cat(b, dim=-1)
 
 
 # modified from torchvision to also return the union

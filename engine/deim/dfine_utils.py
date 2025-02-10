@@ -119,13 +119,11 @@ def distance2bbox(points, distance, reg_scale):
         Tensor: Bounding boxes in (N, 4) or (B, N, 4) format [cx, cy, w, h].
     """
     reg_scale = abs(reg_scale)
-    x1 = points[..., 0] - (0.5 * reg_scale + distance[..., 0]) * (points[..., 2] / reg_scale)
-    y1 = points[..., 1] - (0.5 * reg_scale + distance[..., 1]) * (points[..., 3] / reg_scale)
-    x2 = points[..., 0] + (0.5 * reg_scale + distance[..., 2]) * (points[..., 2] / reg_scale)
-    y2 = points[..., 1] + (0.5 * reg_scale + distance[..., 3]) * (points[..., 3] / reg_scale)
-
-    bboxes = torch.stack([x1, y1, x2, y2], -1)
-
+    x1 = points[..., 0:1] - (0.5 * reg_scale + distance[..., 0:1]) * (points[..., 2:3] / reg_scale)
+    y1 = points[..., 1:2] - (0.5 * reg_scale + distance[..., 1:2]) * (points[..., 3:4] / reg_scale)
+    x2 = points[..., 0:1] + (0.5 * reg_scale + distance[..., 2:3]) * (points[..., 2:3] / reg_scale)
+    y2 = points[..., 1:2] + (0.5 * reg_scale + distance[..., 3:4]) * (points[..., 3:4] / reg_scale)
+    bboxes = torch.cat([x1, y1, x2, y2], -1)
     return box_xyxy_to_cxcywh(bboxes)
 
 

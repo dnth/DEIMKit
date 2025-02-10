@@ -143,3 +143,5 @@ tools/dataset/wholebody28_1/
 tools/dataset/wholebody28_2/
 outputs/
 *.tar.gz
+*.engine
+*.profile
