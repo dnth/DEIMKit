@@ -1,0 +1,71 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "demo",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "-m", "deim_hgnetv2_x_wholebody28_ft_1250query_n_batch.onnx",
+
+                // "-v", "0",
+                // "-v", "D0002080169_00000_V_000.mp4",
+                // "-v", "D0002160854_00000_V_000.mp4",
+                "-v", "D0002040195_00000_V_000.mp4",
+
+                "-ep", "tensorrt",
+                // "-it", "int8",
+                // "-dvw",
+                // "-dwk",
+
+                // "-ost", "0.35",
+                // "-ast", "0.70",
+                // "-kst", "0.25",
+
+                "-dnm",
+                "-dgm",
+                "-dlr",
+                "-dhm",
+                "-kdm", "dot",
+                // "-drc", "17", "18", "19", "20", "21",
+                "-efm",
+                // "-oyt",
+            ]
+        },
+        {
+            "name": "demo_img",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "-m", "deim_hgnetv2_x_wholebody28_ft_1250query_n_batch.onnx",
+
+                // "-i", "images_partial",
+                "-i", "images",
+
+                "-ep", "cuda",
+                // "-ep", "tensorrt",
+
+                // "-it", "int8",
+                "-dvw",
+                "-dwk",
+
+                // "-ost", "0.35",
+                // "-ast", "0.70",
+                // "-kst", "0.25",
+
+                "-dnm",
+                "-dgm",
+                "-dlr",
+                "-dhm",
+                "-kdm", "dot",
+                // "-drc", "17", "18", "19", "20", "21",
+                // "-efm",
+                // "-oyt",
+            ]
+        }
+    ]
+}

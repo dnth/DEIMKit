@@ -138,10 +138,17 @@ dmypy.json
 .DS_Store
 
 deim_hgnetv2_x_wholebody28_300query/
+deim_hgnetv2_x_wholebody28_1250query/
 tools/dataset/wholebody28/
 tools/dataset/wholebody28_1/
 tools/dataset/wholebody28_2/
 outputs/
+output/
+
+images/
+images_partial/
+
 *.tar.gz
 *.engine
 *.profile
+*.mp4
