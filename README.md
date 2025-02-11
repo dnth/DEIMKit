@@ -433,34 +433,42 @@ If you'd like to train **DEIM** on COCO2017 with an input size of 320x320, follo
 
 <!-- <summary>4. Export onnx </summary> -->
 1. Setup
-```shell
-pip install onnx onnxsim
-```
+    ```shell
+    pip install onnx onnxsim
+    ```
 
-2. Export onnx
-```shell
-python tools/deployment/export_onnx.py \
---check \
---query 300 \
--c configs/deim_dfine/deim_hgnetv2_x_wholebody28.yml \
--r outputs/deim_hgnetv2_x_wholebody28/best_stg2.pth
+2. Converting Model Weights (Extract and save only the EMA weights.)
+    ```shell
+    python tools/reference/convert_weight.py \
+    outputs/deim_hgnetv2_x_wholebody28
+    ```
+    ![image](https://github.com/user-attachments/assets/d93dc98d-9b7a-4fbb-b50d-0bf9186ffdd7)
 
-python tools/deployment/export_onnx.py \
---check \
---query 300 \
---dynamic_batch \
--c configs/deim_dfine/deim_hgnetv2_x_wholebody28.yml \
--r outputs/deim_hgnetv2_x_wholebody28/best_stg2.pth
+3. Export onnx
+    ```shell
+    python tools/deployment/export_onnx.py \
+    --check \
+    --query 1250 \
+    -c configs/deim_dfine/deim_hgnetv2_x_wholebody28.yml \
+    -r outputs/deim_hgnetv2_x_wholebody28/best_stg2_converted.pth
+    
+    python tools/deployment/export_onnx.py \
+    --check \
+    --query 1250 \
+    --dynamic_batch \
+    -c configs/deim_dfine/deim_hgnetv2_x_wholebody28.yml \
+    -r outputs/deim_hgnetv2_x_wholebody28/best_stg2_converted.pth
+    ```
 
-#################
-ONNXSIM_FIXED_POINT_ITERS=10000 onnxsim best_stg2.onnx best_stg2.onnx \
---overwrite-input-shape "images:1,3,640,640" "orig_target_sizes:1,2"
-```
+4. Variable batch size pre-processing and post-processing integration
+    ```shell
+    python tools/deployment/make_prep.py
+    ```
 
-3. Export [tensorrt](https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html)
-```shell
-trtexec --onnx="model.onnx" --saveEngine="model.engine" --fp16
-```
+5. Export [tensorrt](https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html)
+    ```shell
+    trtexec --onnx="model.onnx" --saveEngine="model.engine" --fp16
+    ```
 
 </details>
 
@@ -518,20 +526,13 @@ python tools/visualization/fiftyone_vis.py -c configs/deim_dfine/deim_hgnetv2_${
 ```
 </details>
 
-<details open>
+<details>
 <summary> Others </summary>
 
 1. Auto Resume Training
 ```shell
 bash reference/safe_training.sh
 ```
-
-2. Converting Model Weights (Extract and save only the EMA weights.)
-```shell
-python tools/reference/convert_weight.py \
-deim_hgnetv2_x_wholebody28_300query/deim_hgnetv2_x_wholebody28
-```
-![image](https://github.com/user-attachments/assets/d93dc98d-9b7a-4fbb-b50d-0bf9186ffdd7)
 </details>
 
 
