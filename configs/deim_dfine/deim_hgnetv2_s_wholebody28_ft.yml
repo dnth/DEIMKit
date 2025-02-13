@@ -21,7 +21,7 @@ optimizer:
 
 
 # Increase to search for the optimal ema
-epoches: 160 # 120 + 4n
+epoches: 140 # 120 + 4n
 
 ## Our LR-Scheduler
 flat_epoch: 64    # 4 + epoch // 2, e.g., 40 = 4 + 72 / 2
@@ -32,8 +32,8 @@ train_dataloader:
   dataset:
     transforms:
       policy:
-        epoch: [4, 64, 120]   # list
+        epoch: [4, 64, 100]   # list
 
   collate_fn:
     mixup_epochs: [4, 64]
-    stop_epoch: 120
+    stop_epoch: 100
