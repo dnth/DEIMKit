@@ -144,6 +144,7 @@ tools/dataset/wholebody28_1/
 tools/dataset/wholebody28_2/
 outputs/
 output/
+output_*/
 
 images/
 images_partial/
