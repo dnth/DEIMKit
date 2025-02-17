@@ -1,3 +1,7 @@
+# This fork `wholebody28` branch only has some parameters customized for learning Wholebody28. Also, ONNX/TensorRT optimization.
+
+---
+
 <h2 align="center">
   DEIM: DETR with Improved Matching for Fast Convergence
 </h2>
