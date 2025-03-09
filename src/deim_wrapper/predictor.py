@@ -12,25 +12,31 @@ from .config import Config
 from .visualization import draw_on_image
 
 
-def load_model(model_name: str, device: str = "auto"):
+def load_model(model_name: str, device: str = "auto", checkpoint: str | None = None, class_names: list[str] | None = None):
     """Load a DEIM model
 
     Args:
         model_name: Model name string (one of: 'deim_hgnetv2_n', 'deim_hgnetv2_s',
                    'deim_hgnetv2_m', 'deim_hgnetv2_l', 'deim_hgnetv2_x')
         device: Device to run inference on ('cpu', 'cuda', 'cuda:0', etc. or 'auto')
+        checkpoint: Optional path to a custom checkpoint file
+        class_names: Optional list of class names for the model
     """
+    return Predictor(model_name, device, checkpoint, class_names)
 
-    return Predictor(model_name, device)
 
 class Predictor:
-    def __init__(self, model_name: str, device: str = "auto"):
+    def __init__(
+        self, model_name: str, device: str = "auto", checkpoint: str | None = None, class_names: list[str] | None = None
+    ):
         """Initialize a predictor with a DEIM model
 
         Args:
             model_name: Model name string (one of: 'deim_hgnetv2_n', 'deim_hgnetv2_s',
                        'deim_hgnetv2_m', 'deim_hgnetv2_l', 'deim_hgnetv2_x')
             device: Device to run inference on ('cpu', 'cuda', 'cuda:0', etc. or 'auto')
+            checkpoint: Optional path to a custom checkpoint file
+            class_names: Optional list of class names for the model
         """
         logger.info(f"Initializing Predictor with device={device}")
 
@@ -54,10 +60,16 @@ class Predictor:
             logger.info(f"Auto-selected device: {device}")
         self.device = device
 
-        # Download checkpoint if needed
-        checkpoint_path = self._download_checkpoint(
-            model_name, CHECKPOINT_URLS[model_name]
-        )
+        # Load checkpoint - either custom or downloaded
+        if checkpoint is not None:
+            if not os.path.exists(checkpoint):
+                raise ValueError(f"Custom checkpoint not found: {checkpoint}")
+            checkpoint_path = checkpoint
+            logger.info(f"Using custom checkpoint: {checkpoint_path}")
+        else:
+            checkpoint_path = self._download_checkpoint(
+                model_name, CHECKPOINT_URLS[model_name]
+            )
 
         # Initialize distributed environment for single-process inference
         # This prevents errors when loading models that check for distributed rank
@@ -104,7 +116,66 @@ class Predictor:
             state = checkpoint["model"]
 
         # Load model state
-        self.cfg.model.load_state_dict(state)
+        try:
+            self.cfg.model.load_state_dict(state, strict=False)
+        except RuntimeError as e:
+            logger.warning(f"Could not load checkpoint with non-strict loading: {e}")
+            logger.warning("Attempting to adapt parameters with shape mismatches...")
+            
+            model_dict = self.cfg.model.state_dict()
+            adapted_state_dict = {}
+            
+            for k, checkpoint_param in state.items():
+                if k not in model_dict:
+                    continue  # Skip parameters not in model
+                    
+                model_param = model_dict[k]
+                
+                if checkpoint_param.shape == model_param.shape:
+                    # Shapes match, use directly
+                    adapted_state_dict[k] = checkpoint_param
+                else:
+                    # Handle shape mismatches based on parameter type
+                    if len(checkpoint_param.shape) == 2 and len(model_param.shape) == 2:
+                        # For 2D tensors (weights of linear layers)
+                        if "class_embed" in k or "score_head" in k:
+                            # For classification heads, adapt the number of classes
+                            logger.info(f"Adapting parameter {k}: {checkpoint_param.shape} -> {model_param.shape}")
+                            
+                            # Initialize with the model's random weights
+                            adapted_param = model_param.clone()
+                            
+                            # Copy weights for common classes
+                            min_classes = min(checkpoint_param.shape[0], model_param.shape[0])
+                            min_features = min(checkpoint_param.shape[1], model_param.shape[1])
+                            adapted_param[:min_classes, :min_features] = checkpoint_param[:min_classes, :min_features]
+                            
+                            adapted_state_dict[k] = adapted_param
+                        else:
+                            # For other 2D tensors, try to adapt if possible
+                            logger.info(f"Adapting parameter {k}: {checkpoint_param.shape} -> {model_param.shape}")
+                            adapted_param = model_param.clone()
+                            min_dim0 = min(checkpoint_param.shape[0], model_param.shape[0])
+                            min_dim1 = min(checkpoint_param.shape[1], model_param.shape[1])
+                            adapted_param[:min_dim0, :min_dim1] = checkpoint_param[:min_dim0, :min_dim1]
+                            adapted_state_dict[k] = adapted_param
+                    
+                    elif len(checkpoint_param.shape) == 1 and len(model_param.shape) == 1:
+                        # For 1D tensors (biases, etc.)
+                        logger.info(f"Adapting parameter {k}: {checkpoint_param.shape} -> {model_param.shape}")
+                        adapted_param = model_param.clone()
+                        min_dim = min(checkpoint_param.shape[0], model_param.shape[0])
+                        adapted_param[:min_dim] = checkpoint_param[:min_dim]
+                        adapted_state_dict[k] = adapted_param
+                    
+                    else:
+                        # For other tensor shapes, try a generic approach
+                        logger.warning(f"Complex shape mismatch for {k}: {checkpoint_param.shape} vs {model_param.shape}. Using model's initialization.")
+                        adapted_state_dict[k] = model_param
+            
+            # Load adapted parameters
+            self.cfg.model.load_state_dict(adapted_state_dict, strict=False)
+            logger.info(f"Loaded {len(adapted_state_dict)}/{len(state)} parameters from checkpoint (with adaptations)")
 
         # Create model for inference
         class Model(nn.Module):
@@ -129,6 +200,17 @@ class Predictor:
                 T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ]
         )
+
+        # Store class names
+        self.class_names = class_names
+
+        # After model is loaded, create default class names if none provided
+        if self.class_names is None:
+            # Get number of classes from the model's output layer
+            num_classes = self.cfg.yaml_cfg["num_classes"]
+            # Create default class names (Class_0, Class_1, ...)
+            self.class_names = [f"Class_{i}" for i in range(num_classes)]
+            logger.debug(f"No class names provided. Created {num_classes} default class names.")
 
         logger.success("Predictor initialization complete")
 
@@ -209,6 +291,12 @@ class Predictor:
                 "scores": filtered_scores,
             }
 
+            # Add class names if available
+            if self.class_names is not None:
+                # Map numeric labels to class names
+                results["class_names"] = [self.class_names[int(label)] if 0 <= int(label) < len(self.class_names) 
+                                         else f"unknown_{int(label)}" for label in filtered_labels]
+
             logger.debug(f"Prediction complete. Found {len(filtered_boxes)} objects")
 
             if visualize:
@@ -218,6 +306,7 @@ class Predictor:
                     detections=results,
                     score_threshold=conf_threshold,
                     output_path=save_path,
+                    class_names=self.class_names,  # Pass class names to visualization
                 )
                 results["visualization"] = vis_image
 
@@ -286,11 +375,18 @@ class Predictor:
                     # Process each image in batch
                     for i in range(len(batch)):
                         mask = scores[i] > conf_threshold
+                        filtered_labels = labels[i][mask].cpu().numpy()
                         result = {
                             "boxes": boxes[i][mask].cpu().numpy(),
-                            "labels": labels[i][mask].cpu().numpy(),
+                            "labels": filtered_labels,
                             "scores": scores[i][mask].cpu().numpy(),
                         }
+                        
+                        # Add class names if available
+                        if self.class_names is not None:
+                            # Map numeric labels to class names
+                            result["class_names"] = [self.class_names[int(label)] if 0 <= int(label) < len(self.class_names) 
+                                                   else f"unknown_{int(label)}" for label in filtered_labels]
 
                         # Add visualization if requested
                         if visualize:
@@ -303,10 +399,11 @@ class Predictor:
                                 else None
                             )
                             vis_image = draw_on_image(
-                                image=original_images[i],  # Use correct original image
+                                image=original_images[i],
                                 detections=result,
                                 score_threshold=conf_threshold,
                                 output_path=output_path,
+                                class_names=self.class_names,  # Pass class names to visualization
                             )
                             result["visualization"] = vis_image
 
