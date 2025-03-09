@@ -3,7 +3,7 @@ authors = [{name = "dnth", email = "dickson.neoh@gmail.com"}]
 name = "deim_wrapper"
 requires-python = ">= 3.11"
 version = "0.1.0"
-dependencies = [ "torch>=2.6.0,<3", "torchvision>=0.21.0,<0.22", "faster-coco-eval>=1.6.5,<2", "pyyaml>=6.0.2,<7", "tensorboard>=2.19.0,<3", "scipy>=1.15.2,<2", "calflops>=0.3.2,<0.4", "transformers>=4.49.0,<5"]
+dependencies = [ "torch>=2.6.0,<3", "torchvision>=0.21.0,<0.22", "faster-coco-eval>=1.6.5,<2", "pyyaml>=6.0.2,<7", "tensorboard>=2.19.0,<3", "scipy>=1.15.2,<2", "calflops>=0.3.2,<0.4", "transformers>=4.49.0,<5", "opencv-python>=4.11.0.86,<5", "gdown>=5.2.0,<6", "loguru>=0.7.3,<0.8"]
 
 [build-system]
 build-backend = "hatchling.build"
@@ -21,3 +21,4 @@ deim_wrapper = { path = ".", editable = true }
 [tool.pixi.dependencies]
 ipywidgets = ">=8.1.5,<9"
 ipykernel = ">=6.29.5,<7"
+matplotlib = ">=3.10.1,<4"
