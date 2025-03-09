@@ -12,6 +12,17 @@ from .config import Config
 from .visualization import draw_on_image
 
 
+def load_model(model_name: str, device: str = "auto"):
+    """Load a DEIM model
+
+    Args:
+        model_name: Model name string (one of: 'deim_hgnetv2_n', 'deim_hgnetv2_s',
+                   'deim_hgnetv2_m', 'deim_hgnetv2_l', 'deim_hgnetv2_x')
+        device: Device to run inference on ('cpu', 'cuda', 'cuda:0', etc. or 'auto')
+    """
+
+    return Predictor(model_name, device)
+
 class Predictor:
     def __init__(self, model_name: str, device: str = "auto"):
         """Initialize a predictor with a DEIM model
@@ -241,6 +252,7 @@ class Predictor:
         results = []
         batch = []
         orig_sizes = []
+        original_images = []  # Store original images for the batch
 
         for idx, image_path in enumerate(image_paths):
             try:
@@ -251,7 +263,8 @@ class Predictor:
                 im_pil = Image.open(image_path).convert("RGB")
 
                 # Store original image for visualization if needed
-                original_image = im_pil.copy() if visualize else None
+                if visualize:
+                    original_images.append(im_pil.copy())
 
                 # Get original dimensions
                 w, h = im_pil.size
@@ -290,7 +303,7 @@ class Predictor:
                                 else None
                             )
                             vis_image = draw_on_image(
-                                image=original_image,
+                                image=original_images[i],  # Use correct original image
                                 detections=result,
                                 score_threshold=conf_threshold,
                                 output_path=output_path,
@@ -301,6 +314,7 @@ class Predictor:
 
                     batch = []
                     orig_sizes = []
+                    original_images = []  # Clear original images for next batch
 
             except Exception as e:
                 logger.error(f"Error processing image at index {idx}: {str(e)}")

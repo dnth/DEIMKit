@@ -11,5 +11,5 @@ from .engine.backbone import (
 )
 
 from .config import Config, list_models
-from .predictor import Predictor
+from .predictor import load_model, Predictor
 from .visualization import visualize_detections, draw_on_image

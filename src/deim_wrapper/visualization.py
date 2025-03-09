@@ -75,7 +75,9 @@ def visualize_detections(
     if colors is None:
         colors = {}
         for i in range(len(class_names)):
-            colors[i] = plt.cm.hsv(i / len(class_names))[:3]
+            # Use HSV color space with reduced value (brightness) for better contrast
+            hue = i / len(class_names)
+            colors[i] = plt.cm.hsv(hue, 0.8, 0.7)[:3]  # Reduced saturation and value
     
     # Draw each detection
     for box, label, score in zip(boxes, labels, scores):
@@ -195,8 +197,12 @@ def draw_on_image(
     if colors is None:
         colors = {}
         for i in range(len(class_names)):
-            # Convert HSV to BGR for OpenCV
-            hsv_color = np.array([[[i / len(class_names) * 179, 255, 255]]], dtype=np.uint8)
+            # Convert HSV to BGR for OpenCV, using darker colors
+            hsv_color = np.array([[[
+                i / len(class_names) * 179,  # Hue
+                200,  # Reduced saturation
+                180   # Reduced value/brightness
+            ]]], dtype=np.uint8)
             bgr_color = cv2.cvtColor(hsv_color, cv2.COLOR_HSV2BGR)[0][0]
             colors[i] = (int(bgr_color[0]), int(bgr_color[1]), int(bgr_color[2]))
     
