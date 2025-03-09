@@ -136,3 +136,6 @@ dmypy.json
 *.zip
 *.html
 .DS_Store
+# pixi environments
+.pixi
+*.egg-info
