@@ -269,9 +269,6 @@ class Trainer:
             
             # Evaluate
             eval_stats = self.evaluate()
-            print("================================================")
-            print(eval_stats)
-            print("================================================")
             
             # Update best stats
             for k in eval_stats:

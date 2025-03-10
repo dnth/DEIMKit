@@ -236,7 +236,7 @@ yaml_cfg:
     drop_last: true
     num_workers: 4
     shuffle: true
-    total_batch_size: 32
+    total_batch_size: 16
     type: DataLoader
   use_amp: true
   use_ema: true
@@ -262,6 +262,6 @@ yaml_cfg:
     drop_last: false
     num_workers: 4
     shuffle: false
-    total_batch_size: 32
+    total_batch_size: 16
     type: DataLoader
   warmup_iter: 2000
