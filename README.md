@@ -37,6 +37,14 @@ Install pixi
 curl -fsSL https://pixi.sh/install.sh | bash
 ```
 
+Navigate into the base directory of this repo and run 
+
+```bash
+pixi install 
+```
+
+With that, you've got a working Python environment with all the dependencies installed.
+
 ## Usage
 
 List models supported by DEIMKit
