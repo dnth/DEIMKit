@@ -25,10 +25,10 @@
 Using pip
 
 ```bash
-pip install https://github.com/dnth/DEIM
+pip install git+https://github.com/dnth/DEIM.git
 ```
 
-Using pixi
+> [!TIP] I recommend using [pixi](https://pixi.sh) to run this package. Pixi makes it easy to install the right version of Python and the dependencies to run this package.
 
 Install pixi
 
