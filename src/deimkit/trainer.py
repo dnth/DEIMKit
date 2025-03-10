@@ -221,6 +221,7 @@ class Trainer:
         start_epoch = self.last_epoch + 1
 
         for epoch in range(start_epoch, num_epochs):
+            logger.info(f"Epoch {epoch}/{num_epochs}")
             # Set epoch for data loader
             if hasattr(self.train_dataloader, "set_epoch"):
                 self.train_dataloader.set_epoch(epoch)
