@@ -10,6 +10,7 @@ Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import sys
 import math
 from typing import Iterable
+from tqdm import tqdm
 
 import torch
 import torch.amp
@@ -38,8 +39,11 @@ def train_one_epoch(self_lr_scheduler, lr_scheduler, model: torch.nn.Module, cri
     lr_warmup_scheduler :Warmup = kwargs.get('lr_warmup_scheduler', None)
 
     cur_iters = epoch * len(data_loader)
+    
+    # Add progress bar
+    pbar = tqdm(total=len(data_loader), desc=f'Epoch {epoch}', leave=True)
 
-    for i, (samples, targets) in enumerate(metric_logger.log_every(data_loader, print_freq, header)):
+    for i, (samples, targets) in enumerate(data_loader):
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         global_step = epoch * len(data_loader) + i
@@ -116,6 +120,12 @@ def train_one_epoch(self_lr_scheduler, lr_scheduler, model: torch.nn.Module, cri
             for k, v in loss_dict_reduced.items():
                 writer.add_scalar(f'Loss/{k}', v.item(), global_step)
 
+        # Update progress bar with loss info
+        pbar.set_postfix({'loss': f'{loss_value:.4f}'})
+        pbar.update()
+
+    pbar.close()
+
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)
@@ -137,7 +147,10 @@ def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, 
     # coco_evaluator = CocoEvaluator(base_ds, iou_types)
     # coco_evaluator.coco_eval[iou_types[0]].params.iouThrs = [0, 0.1, 0.5, 0.75]
 
-    for samples, targets in metric_logger.log_every(data_loader, 10, header):
+    # Add progress bar for evaluation
+    pbar = tqdm(total=len(data_loader), desc='Evaluating', leave=True)
+
+    for samples, targets in data_loader:
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
@@ -154,6 +167,11 @@ def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, 
         res = {target['image_id'].item(): output for target, output in zip(targets, results)}
         if coco_evaluator is not None:
             coco_evaluator.update(res)
+
+        # Update progress bar
+        pbar.update()
+
+    pbar.close()
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
