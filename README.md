@@ -22,11 +22,22 @@
 - [ ] Export
 
 ## Installation
-Using pip
+
+### Using pip
 
 ```bash
 pip install git+https://github.com/dnth/DEIM.git
 ```
+
+Or install the package from the local directory in editable mode
+
+```bash
+git clone https://github.com/dnth/DEIM.git
+cd DEIM
+pip install -e .
+```
+
+### Using Pixi
 
 > [!TIP] 
 > I recommend using [Pixi](https://pixi.sh) to run this package. Pixi makes it easy to install the right version of Python and the dependencies to run this package.
@@ -40,10 +51,18 @@ curl -fsSL https://pixi.sh/install.sh | bash
 Navigate into the base directory of this repo and run 
 
 ```bash
+git clone https://github.com/dnth/DEIM.git
+cd DEIM
 pixi install 
 ```
+With that, you've got a working Python environment with all the dependencies installed. This also installs DEIMKit in editable mode for development.
 
-With that, you've got a working Python environment with all the dependencies installed.
+### Using uv
+
+```bash
+uv venv --python 3.11
+uv pip install -e . 
+```
 
 ## Usage
 
