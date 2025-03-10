@@ -1,0 +1,267 @@
+batch_size: null
+checkpoint_freq: 4
+clip_max_norm: 0.1
+device: ''
+ema_decay: 0.9999
+ema_warmups: 2000
+epoches: 132
+find_unused_parameters: false
+flat_epoch: 64
+last_epoch: -1
+lr_gamma: 0.5
+lrsheduler: flatcosine
+no_aug_epoch: 12
+num_workers: 0
+output_dir: ./outputs/deim_hgnetv2_s_coco
+print_freq: 100
+resume: null
+seed: null
+summary_dir: null
+sync_bn: true
+task: detection
+tuning: null
+use_amp: true
+use_ema: true
+warmup_iter: 2000
+yaml_cfg:
+  DEIM:
+    backbone: HGNetv2
+    decoder: DFINETransformer
+    encoder: HybridEncoder
+  DEIMCriterion:
+    alpha: 0.75
+    gamma: 1.5
+    losses:
+    - mal
+    - boxes
+    - local
+    matcher:
+      alpha: 0.25
+      gamma: 2.0
+      type: HungarianMatcher
+      weight_dict:
+        cost_bbox: 5
+        cost_class: 2
+        cost_giou: 2
+    reg_max: 32
+    weight_dict:
+      loss_bbox: 5
+      loss_ddf: 1.5
+      loss_fgl: 0.15
+      loss_giou: 2
+      loss_mal: 1
+      loss_vfl: 1
+  DFINETransformer:
+    activation: silu
+    box_noise_scale: 1.0
+    cross_attn_method: default
+    eval_idx: -1
+    feat_channels:
+    - 256
+    - 256
+    - 256
+    feat_strides:
+    - 8
+    - 16
+    - 32
+    hidden_dim: 256
+    label_noise_ratio: 0.5
+    layer_scale: 1
+    mlp_act: silu
+    num_denoising: 100
+    num_layers: 3
+    num_levels: 3
+    num_points:
+    - 3
+    - 6
+    - 3
+    num_queries: 300
+    query_select_method: default
+    reg_max: 32
+    reg_scale: 4
+  HGNetv2:
+    freeze_at: -1
+    freeze_norm: false
+    local_model_dir: ../RT-DETR-main/D-FINE/weight/hgnetv2/
+    name: B0
+    pretrained: true
+    return_idx:
+    - 1
+    - 2
+    - 3
+    use_lab: true
+  HybridEncoder:
+    act: silu
+    depth_mult: 0.34
+    dim_feedforward: 1024
+    dropout: 0.0
+    enc_act: gelu
+    expansion: 0.5
+    feat_strides:
+    - 8
+    - 16
+    - 32
+    hidden_dim: 256
+    in_channels:
+    - 256
+    - 512
+    - 1024
+    nhead: 8
+    num_encoder_layers: 1
+    use_encoder_idx:
+    - 2
+  PostProcessor:
+    num_top_queries: 300
+  __include__:
+  - ./dfine_hgnetv2_s_coco.yml
+  - ../base/deim.yml
+  checkpoint_freq: 4
+  clip_max_norm: 0.1
+  criterion: DEIMCriterion
+  ema:
+    decay: 0.9999
+    start: 0
+    type: ModelEMA
+    warmups: 1000
+  epoches: 132
+  eval_spatial_size:
+  - 640
+  - 640
+  evaluator:
+    iou_types:
+    - bbox
+    type: CocoEvaluator
+  find_unused_parameters: false
+  flat_epoch: 64
+  lr_gamma: 0.5
+  lr_scheduler:
+    gamma: 0.1
+    milestones:
+    - 500
+    type: MultiStepLR
+  lr_warmup_scheduler:
+    type: LinearWarmup
+    warmup_duration: 500
+  lrsheduler: flatcosine
+  model: DEIM
+  no_aug_epoch: 12
+  num_classes: 4
+  optimizer:
+    betas:
+    - 0.9
+    - 0.999
+    lr: 0.0004
+    params:
+    - lr: 0.0002
+      params: ^(?=.*backbone)(?!.*bn).*$
+    - params: ^(?=.*(?:norm|bn)).*$
+      weight_decay: 0.0
+    type: AdamW
+    weight_decay: 0.0001
+  output_dir: ./outputs/deim_hgnetv2_s_coco
+  postprocessor: PostProcessor
+  print_freq: 100
+  remap_mscoco_category: false
+  scaler:
+    enabled: true
+    type: GradScaler
+  sync_bn: true
+  task: detection
+  train_dataloader:
+    collate_fn:
+      base_size: 640
+      base_size_repeat: 20
+      ema_restart_decay: 0.9999
+      mixup_epochs:
+      - 4
+      - 64
+      mixup_prob: 0.5
+      stop_epoch: 120
+      type: BatchImageCollateFunction
+    dataset:
+      ann_file: /home/dnth/Desktop/DEIM/dataset/images/annotations/instances_train.json
+      img_folder: /home/dnth/Desktop/DEIM/dataset/images/train
+      return_masks: false
+      transforms:
+        mosaic_prob: 0.5
+        ops:
+        - fill_value: 0
+          max_cached_images: 50
+          output_size: 320
+          probability: 1.0
+          random_pop: true
+          rotation_range: 10
+          scaling_range:
+          - 0.5
+          - 1.5
+          translation_range:
+          - 0.1
+          - 0.1
+          type: Mosaic
+          use_cache: false
+        - p: 0.5
+          type: RandomPhotometricDistort
+        - fill: 0
+          type: RandomZoomOut
+        - p: 0.8
+          type: RandomIoUCrop
+        - min_size: 1
+          type: SanitizeBoundingBoxes
+        - type: RandomHorizontalFlip
+        - size:
+          - 640
+          - 640
+          type: Resize
+        - min_size: 1
+          type: SanitizeBoundingBoxes
+        - dtype: float32
+          scale: true
+          type: ConvertPILImage
+        - fmt: cxcywh
+          normalize: true
+          type: ConvertBoxes
+        policy:
+          epoch:
+          - 4
+          - 64
+          - 120
+          name: stop_epoch
+          ops:
+          - Mosaic
+          - RandomPhotometricDistort
+          - RandomZoomOut
+          - RandomIoUCrop
+        type: Compose
+      type: CocoDetection
+    drop_last: true
+    num_workers: 4
+    shuffle: true
+    total_batch_size: 32
+    type: DataLoader
+  use_amp: true
+  use_ema: true
+  use_focal_loss: true
+  val_dataloader:
+    collate_fn:
+      type: BatchImageCollateFunction
+    dataset:
+      ann_file: /home/dnth/Desktop/DEIM/dataset/images/annotations/instances_val.json
+      img_folder: /home/dnth/Desktop/DEIM/dataset/images/valid
+      return_masks: false
+      transforms:
+        ops:
+        - size:
+          - 640
+          - 640
+          type: Resize
+        - dtype: float32
+          scale: true
+          type: ConvertPILImage
+        type: Compose
+      type: CocoDetection
+    drop_last: false
+    num_workers: 4
+    shuffle: false
+    total_batch_size: 32
+    type: DataLoader
+  warmup_iter: 2000
