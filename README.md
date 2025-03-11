@@ -97,7 +97,9 @@ Load a custom trained model
 model = load_model(
     "deim_hgnetv2_s", 
     checkpoint="deim_hgnetv2_s_coco_cells/best.pth",
-    class_names=["cell", "platelet", "red_blood_cell", "white_blood_cell"])
+    class_names=["cell", "platelet", "red_blood_cell", "white_blood_cell"],
+    image_size=(320 , 320)
+)
 ```
 
 Run inference
@@ -107,7 +109,7 @@ result = model.predict(image_path, visualize=True)
 ```
 
 ```python
-result["visualization"]
+result.visualization
 ```
 
 ![alt text](assets/sample_result.jpg)
