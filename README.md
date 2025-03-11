@@ -105,7 +105,10 @@ result["visualization"]
 
 See the [demo notebook](nbs/pretrained-model-inference.ipynb) for more details.
 
-Training a model
+> [!NOTE]
+> If you have a trained custom model you can also load it using the `load_model` function in the same way. Read more in the [custom model inference](nbs/custom-model-inference.ipynb) section.
+
+Training with your own dataset
 
 ```python
 from deimkit import Trainer, Config, configure_dataset
@@ -142,5 +145,3 @@ tensorboard --logdir ./outputs/deim_hgnetv2_s_pcb
 ```
 
 
-> [!NOTE]
-> If you have a trained custom model you can also load it using the `load_model` function in the same way. Read more in the [custom model inference](nbs/custom-model-inference.ipynb) section.
