@@ -18,7 +18,7 @@
 ## Supported Features
 
 - [x] Inference
-- [ ] Training
+- [x] Training
 - [ ] Export
 
 ## Installation
@@ -107,3 +107,41 @@ See the [demo notebook](nbs/pretrained-model-inference.ipynb) for more details.
 
 > [!NOTE]
 > If you have a trained custom model you can also load it using the `load_model` function in the same way. Read more in the [custom model inference](nbs/custom-model-inference.ipynb) section.
+
+Training with your own dataset
+
+```python
+from deimkit import Trainer, Config, configure_dataset
+
+conf = Config.from_model_name("deim_hgnetv2_s")
+
+conf = configure_dataset(
+    config=conf,
+    image_size=[640, 640],
+    train_ann_file="dataset/PCB Holes.v4i.coco/train/_annotations.coco.json",
+    train_img_folder="dataset/PCB Holes.v4i.coco/train",
+    val_ann_file="dataset/PCB Holes.v4i.coco/valid/_annotations.coco.json",
+    val_img_folder="dataset/PCB Holes.v4i.coco/valid",
+    train_batch_size=16,
+    val_batch_size=16,
+    num_classes=2,
+    output_dir="./outputs/deim_hgnetv2_s_pcb",
+)
+
+trainer = Trainer(conf)
+trainer.fit(
+    epochs=100,        # Total number of epochs to train
+    flat_epoch=50,     # Starting epoch to train with fixed learning rate
+    no_aug_epoch=3,    # Ending epoch to train without data augmentation
+    warmup_iter=50,    # Number of steps for learning rate warmup
+    ema_warmups=50     # Number of warmup steps for EMA
+)
+```
+
+Monitor training progress
+
+```bash
+tensorboard --logdir ./outputs/deim_hgnetv2_s_pcb
+```
+
+
