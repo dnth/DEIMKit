@@ -12,7 +12,12 @@ from .config import Config
 from .visualization import draw_on_image
 
 
-def load_model(model_name: str, device: str = "auto", checkpoint: str | None = None, class_names: list[str] | None = None):
+def load_model(
+    model_name: str,
+    device: str = "auto",
+    checkpoint: str | None = None,
+    class_names: list[str] | None = None,
+):
     """Load a DEIM model
 
     Args:
@@ -27,7 +32,11 @@ def load_model(model_name: str, device: str = "auto", checkpoint: str | None = N
 
 class Predictor:
     def __init__(
-        self, model_name: str, device: str = "auto", checkpoint: str | None = None, class_names: list[str] | None = None
+        self,
+        model_name: str,
+        device: str = "auto",
+        checkpoint: str | None = None,
+        class_names: list[str] | None = None,
     ):
         """Initialize a predictor with a DEIM model
 
@@ -121,16 +130,16 @@ class Predictor:
         except RuntimeError as e:
             logger.warning(f"Could not load checkpoint with non-strict loading: {e}")
             logger.warning("Attempting to adapt parameters with shape mismatches...")
-            
+
             model_dict = self.cfg.model.state_dict()
             adapted_state_dict = {}
-            
+
             for k, checkpoint_param in state.items():
                 if k not in model_dict:
                     continue  # Skip parameters not in model
-                    
+
                 model_param = model_dict[k]
-                
+
                 if checkpoint_param.shape == model_param.shape:
                     # Shapes match, use directly
                     adapted_state_dict[k] = checkpoint_param
@@ -140,42 +149,66 @@ class Predictor:
                         # For 2D tensors (weights of linear layers)
                         if "class_embed" in k or "score_head" in k:
                             # For classification heads, adapt the number of classes
-                            logger.info(f"Adapting parameter {k}: {checkpoint_param.shape} -> {model_param.shape}")
-                            
+                            logger.info(
+                                f"Adapting parameter {k}: {checkpoint_param.shape} -> {model_param.shape}"
+                            )
+
                             # Initialize with the model's random weights
                             adapted_param = model_param.clone()
-                            
+
                             # Copy weights for common classes
-                            min_classes = min(checkpoint_param.shape[0], model_param.shape[0])
-                            min_features = min(checkpoint_param.shape[1], model_param.shape[1])
-                            adapted_param[:min_classes, :min_features] = checkpoint_param[:min_classes, :min_features]
-                            
+                            min_classes = min(
+                                checkpoint_param.shape[0], model_param.shape[0]
+                            )
+                            min_features = min(
+                                checkpoint_param.shape[1], model_param.shape[1]
+                            )
+                            adapted_param[:min_classes, :min_features] = (
+                                checkpoint_param[:min_classes, :min_features]
+                            )
+
                             adapted_state_dict[k] = adapted_param
                         else:
                             # For other 2D tensors, try to adapt if possible
-                            logger.info(f"Adapting parameter {k}: {checkpoint_param.shape} -> {model_param.shape}")
+                            logger.info(
+                                f"Adapting parameter {k}: {checkpoint_param.shape} -> {model_param.shape}"
+                            )
                             adapted_param = model_param.clone()
-                            min_dim0 = min(checkpoint_param.shape[0], model_param.shape[0])
-                            min_dim1 = min(checkpoint_param.shape[1], model_param.shape[1])
-                            adapted_param[:min_dim0, :min_dim1] = checkpoint_param[:min_dim0, :min_dim1]
+                            min_dim0 = min(
+                                checkpoint_param.shape[0], model_param.shape[0]
+                            )
+                            min_dim1 = min(
+                                checkpoint_param.shape[1], model_param.shape[1]
+                            )
+                            adapted_param[:min_dim0, :min_dim1] = checkpoint_param[
+                                :min_dim0, :min_dim1
+                            ]
                             adapted_state_dict[k] = adapted_param
-                    
-                    elif len(checkpoint_param.shape) == 1 and len(model_param.shape) == 1:
+
+                    elif (
+                        len(checkpoint_param.shape) == 1 and len(model_param.shape) == 1
+                    ):
                         # For 1D tensors (biases, etc.)
-                        logger.info(f"Adapting parameter {k}: {checkpoint_param.shape} -> {model_param.shape}")
+                        logger.info(
+                            f"Adapting parameter {k}: {checkpoint_param.shape} -> {model_param.shape}"
+                        )
                         adapted_param = model_param.clone()
                         min_dim = min(checkpoint_param.shape[0], model_param.shape[0])
                         adapted_param[:min_dim] = checkpoint_param[:min_dim]
                         adapted_state_dict[k] = adapted_param
-                    
+
                     else:
                         # For other tensor shapes, try a generic approach
-                        logger.warning(f"Complex shape mismatch for {k}: {checkpoint_param.shape} vs {model_param.shape}. Using model's initialization.")
+                        logger.warning(
+                            f"Complex shape mismatch for {k}: {checkpoint_param.shape} vs {model_param.shape}. Using model's initialization."
+                        )
                         adapted_state_dict[k] = model_param
-            
+
             # Load adapted parameters
             self.cfg.model.load_state_dict(adapted_state_dict, strict=False)
-            logger.info(f"Loaded {len(adapted_state_dict)}/{len(state)} parameters from checkpoint (with adaptations)")
+            logger.info(
+                f"Loaded {len(adapted_state_dict)}/{len(state)} parameters from checkpoint (with adaptations)"
+            )
 
         # Create model for inference
         class Model(nn.Module):
@@ -210,14 +243,17 @@ class Predictor:
             num_classes = self.cfg.yaml_cfg["num_classes"]
             # Create default class names (Class_0, Class_1, ...)
             self.class_names = [f"Class_{i}" for i in range(num_classes)]
-            logger.debug(f"No class names provided. Created {num_classes} default class names.")
+            logger.debug(
+                f"No class names provided. Created {num_classes} default class names."
+            )
 
         logger.success("Predictor initialization complete")
 
     def _download_checkpoint(self, model_name, file_id):
         """Download checkpoint from Google Drive if not already present"""
-        import gdown
         import os
+
+        import gdown
 
         # Create cache directory if it doesn't exist
         cache_dir = os.path.expanduser("~/.cache/deim/checkpoints")
@@ -294,8 +330,12 @@ class Predictor:
             # Add class names if available
             if self.class_names is not None:
                 # Map numeric labels to class names
-                results["class_names"] = [self.class_names[int(label)] if 0 <= int(label) < len(self.class_names) 
-                                         else f"unknown_{int(label)}" for label in filtered_labels]
+                results["class_names"] = [
+                    self.class_names[int(label)]
+                    if 0 <= int(label) < len(self.class_names)
+                    else f"unknown_{int(label)}"
+                    for label in filtered_labels
+                ]
 
             logger.debug(f"Prediction complete. Found {len(filtered_boxes)} objects")
 
@@ -381,12 +421,16 @@ class Predictor:
                             "labels": filtered_labels,
                             "scores": scores[i][mask].cpu().numpy(),
                         }
-                        
+
                         # Add class names if available
                         if self.class_names is not None:
                             # Map numeric labels to class names
-                            result["class_names"] = [self.class_names[int(label)] if 0 <= int(label) < len(self.class_names) 
-                                                   else f"unknown_{int(label)}" for label in filtered_labels]
+                            result["class_names"] = [
+                                self.class_names[int(label)]
+                                if 0 <= int(label) < len(self.class_names)
+                                else f"unknown_{int(label)}"
+                                for label in filtered_labels
+                            ]
 
                         # Add visualization if requested
                         if visualize:
