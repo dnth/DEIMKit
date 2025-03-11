@@ -1,18 +1,13 @@
-from .engine import optim
-from .engine import data
-from .engine import deim
-
+from .config import Config, list_models
+from .dataset import configure_dataset
+from .engine import data, deim, optim
 from .engine.backbone import *
-
 from .engine.backbone import (
-    get_activation,
     FrozenBatchNorm2d,
     freeze_batch_norm2d,
+    get_activation,
 )
-
-from .config import Config, list_models
-from .predictor import load_model, Predictor
-from .visualization import visualize_detections, draw_on_image
+from .predictor import Predictor, load_model
 from .trainer import Trainer
-from .dataset import configure_dataset
 from .utils import save_only_ema_weights
+from .visualization import draw_on_image, visualize_detections
