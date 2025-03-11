@@ -87,7 +87,17 @@ Load a pretrained model by the original authors
 ```python
 from deimkit import load_model
 
+coco_classes = ["aeroplane", ... "zebra"]
 model = load_model("deim_hgnetv2_x", class_names=coco_classes)
+```
+
+Load a custom trained model
+
+```python
+model = load_model(
+    "deim_hgnetv2_s", 
+    checkpoint="deim_hgnetv2_s_coco_cells/best.pth",
+    class_names=["cell", "platelet", "red_blood_cell", "white_blood_cell"])
 ```
 
 Run inference
