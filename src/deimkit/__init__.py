@@ -14,3 +14,4 @@ from .config import Config, list_models
 from .predictor import load_model, Predictor
 from .visualization import visualize_detections, draw_on_image
 from .trainer import Trainer
+from .dataset import configure_dataset

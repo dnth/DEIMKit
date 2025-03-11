@@ -174,15 +174,51 @@ class Trainer:
 
         logger.info(f"Training setup complete. Output directory: {self.output_dir}")
 
-    def train(self) -> Dict[str, Any]:
+    def fit(
+        self,
+        epochs: int = None,
+        flat_epoch: int = None,
+        no_aug_epoch: int = None,
+        warmup_iter: int = None,
+        ema_warmups: int = None,
+        lr: float = None,
+    ):
         """
         Train the model according to the configuration.
 
-        Returns:
-            Dictionary containing training statistics.
+        Args:
+            epochs: Number of training epochs. If None, uses config value.
+            flat_epoch: Number of epochs with flat learning rate. If None, uses config value.
+            no_aug_epoch: Number of epochs without augmentation. If None, uses config value.
+            warmup_iter: Number of warmup iterations. If None, uses config value.
+            ema_warmups: Number of EMA warmup steps. If None, uses config value.
+            lr: Learning rate override. If None, uses config value.
         """
+
         logger.info("Starting training...")
         self._setup()
+
+        if epochs is not None:
+            logger.info(f"Overriding epochs to {epochs}")
+            self.config.epoches = epochs
+        if flat_epoch is not None:
+            logger.info(f"Overriding flat epochs to {flat_epoch}")
+            self.config.flat_epoch = flat_epoch
+        if no_aug_epoch is not None:
+            logger.info(f"Overriding no augmentation epochs to {no_aug_epoch}")
+            self.config.no_aug_epoch = no_aug_epoch
+        if warmup_iter is not None:
+            logger.info(f"Overriding warmup iterations to {warmup_iter}")
+            self.config.warmup_iter = warmup_iter
+        if ema_warmups is not None:
+            logger.info(f"Overriding EMA warmups to {ema_warmups}")
+            self.config.ema_warmups = ema_warmups
+        if lr is not None:
+            logger.info(f"Overriding learning rate to {lr}")
+            self.config.yaml_cfg["optimizer"]["lr"] = lr
+            # Update optimizer's learning rate
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] = lr
 
         # Get training parameters
         num_epochs = self.config.get("epoches", 50)
@@ -260,7 +296,21 @@ class Trainer:
                 self._save_checkpoint(epoch, train_stats, checkpoint_path)
 
             # Evaluate
-            eval_stats = self.evaluate()
+            # Calculate global step for tensorboard logging
+            global_step = (epoch + 1) * len(self.train_dataloader)
+            writer = self.solver.writer if hasattr(self.solver, "writer") else None
+            
+            # Pass writer and global_step to evaluate
+            eval_stats, _ = evaluate(
+                self.ema.module if self.ema else self.model,
+                self.criterion,
+                self.postprocessor,
+                self.val_dataloader,
+                self.evaluator,
+                self.device,
+                writer=writer,
+                global_step=global_step
+            )
 
             # Update best stats
             for k in eval_stats:
@@ -310,6 +360,13 @@ class Trainer:
                 else 0.0
             )
 
+            # Log mAP to tensorboard directly here as well
+            if writer is not None:
+                writer.add_scalar('metrics/mAP', coco_map, global_step)
+                
+                # Also log best mAP so far
+                writer.add_scalar('metrics/best_mAP', top1, global_step)
+
             logger.info(
                 f"Epoch {epoch} - Train loss: {train_stats['loss']:.4f}, Eval mAP: {coco_map:.4f}"
             )
@@ -319,8 +376,7 @@ class Trainer:
         total_time = time.time() - start_time
         total_time_str = str(datetime.timedelta(seconds=int(total_time)))
         logger.info(f"Training completed in {total_time_str}")
-
-        return best_stats
+        logger.info(f"Best stats: {best_stats}")
 
     def evaluate(self) -> Dict[str, Any]:
         """

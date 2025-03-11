@@ -3,26 +3,26 @@ checkpoint_freq: 4
 clip_max_norm: 0.1
 device: ''
 ema_decay: 0.9999
-ema_warmups: 200
-epoches: 80
+ema_warmups: 300
+epoches: 100
 find_unused_parameters: false
-flat_epoch: 40
+flat_epoch: 50
 last_epoch: -1
 lr_gamma: 0.5
 lrsheduler: flatcosine
-no_aug_epoch: 5
+no_aug_epoch: 10
 num_workers: 0
-output_dir: ./outputs/deim_hgnetv2_s_80e
+output_dir: ./outputs/deim_hgnetv2_s_pcb_100e
 print_freq: 100
 resume: null
 seed: null
 summary_dir: null
-sync_bn: true
+sync_bn: false
 task: detection
 tuning: null
 use_amp: true
 use_ema: true
-warmup_iter: 200
+warmup_iter: 300
 yaml_cfg:
   DEIM:
     backbone: HGNetv2
@@ -84,7 +84,7 @@ yaml_cfg:
     freeze_norm: false
     local_model_dir: ../RT-DETR-main/D-FINE/weight/hgnetv2/
     name: B0
-    pretrained: true
+    pretrained: false
     return_idx:
     - 1
     - 2
@@ -124,7 +124,7 @@ yaml_cfg:
     type: ModelEMA
     warmups: 1000
   epoches: 132
-  eval_spatial_size:
+  eval_spatial_size: &id001
   - 640
   - 640
   evaluator:
@@ -145,7 +145,7 @@ yaml_cfg:
   lrsheduler: flatcosine
   model: DEIM
   no_aug_epoch: 12
-  num_classes: 4
+  num_classes: 2
   optimizer:
     betas:
     - 0.9
@@ -179,15 +179,15 @@ yaml_cfg:
       stop_epoch: 120
       type: BatchImageCollateFunction
     dataset:
-      ann_file: /home/dnth/Desktop/DEIM/dataset/images/annotations/instances_train.json
-      img_folder: /home/dnth/Desktop/DEIM/dataset/images/train
+      ann_file: /home/dnth/Downloads/PCB Holes.v4i.coco/train/_annotations.coco.json
+      img_folder: /home/dnth/Downloads/PCB Holes.v4i.coco/train
       return_masks: false
       transforms:
         mosaic_prob: 0.5
         ops:
         - fill_value: 0
           max_cached_images: 50
-          output_size: 320
+          output_size: 640
           probability: 1.0
           random_pop: true
           rotation_range: 10
@@ -208,9 +208,7 @@ yaml_cfg:
         - min_size: 1
           type: SanitizeBoundingBoxes
         - type: RandomHorizontalFlip
-        - size:
-          - 640
-          - 640
+        - size: *id001
           type: Resize
         - min_size: 1
           type: SanitizeBoundingBoxes
@@ -245,14 +243,12 @@ yaml_cfg:
     collate_fn:
       type: BatchImageCollateFunction
     dataset:
-      ann_file: /home/dnth/Desktop/DEIM/dataset/images/annotations/instances_val.json
-      img_folder: /home/dnth/Desktop/DEIM/dataset/images/valid
+      ann_file: /home/dnth/Downloads/PCB Holes.v4i.coco/valid/_annotations.coco.json
+      img_folder: /home/dnth/Downloads/PCB Holes.v4i.coco/valid
       return_masks: false
       transforms:
         ops:
-        - size:
-          - 640
-          - 640
+        - size: *id001
           type: Resize
         - dtype: float32
           scale: true

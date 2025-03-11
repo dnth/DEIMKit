@@ -133,19 +133,16 @@ def train_one_epoch(self_lr_scheduler, lr_scheduler, model: torch.nn.Module, cri
 
 
 @torch.no_grad()
-def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, data_loader, coco_evaluator: CocoEvaluator, device):
+def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, data_loader, coco_evaluator: CocoEvaluator, 
+             device, writer: SummaryWriter = None, global_step: int = None):
     model.eval()
     criterion.eval()
     coco_evaluator.cleanup()
 
     metric_logger = MetricLogger(delimiter="  ")
-    # metric_logger.add_meter('class_error', SmoothedValue(window_size=1, fmt='{value:.2f}'))
     header = 'Test:'
 
-    # iou_types = tuple(k for k in ('segm', 'bbox') if k in postprocessor.keys())
     iou_types = coco_evaluator.iou_types
-    # coco_evaluator = CocoEvaluator(base_ds, iou_types)
-    # coco_evaluator.coco_eval[iou_types[0]].params.iouThrs = [0, 0.1, 0.5, 0.75]
 
     # Add progress bar for evaluation
     pbar = tqdm(total=len(data_loader), desc='Evaluating', leave=True)
@@ -159,10 +156,6 @@ def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, 
         orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
 
         results = postprocessor(outputs, orig_target_sizes)
-
-        # if 'segm' in postprocessor.keys():
-        #     target_sizes = torch.stack([t["size"] for t in targets], dim=0)
-        #     results = postprocessor['segm'](results, outputs, orig_target_sizes, target_sizes)
 
         res = {target['image_id'].item(): output for target, output in zip(targets, results)}
         if coco_evaluator is not None:
@@ -185,11 +178,31 @@ def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, 
         coco_evaluator.summarize()
 
     stats = {}
-    # stats = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
     if coco_evaluator is not None:
         if 'bbox' in iou_types:
             stats['coco_eval_bbox'] = coco_evaluator.coco_eval['bbox'].stats.tolist()
         if 'segm' in iou_types:
             stats['coco_eval_masks'] = coco_evaluator.coco_eval['segm'].stats.tolist()
+        
+        # Log mAP metrics to TensorBoard
+        if writer is not None and dist_utils.is_main_process() and global_step is not None:
+            if 'bbox' in iou_types:
+                # COCO metrics: AP@IoU=0.5:0.95, AP@IoU=0.5, AP@IoU=0.75, etc.
+                bbox_stats = coco_evaluator.coco_eval['bbox'].stats
+                writer.add_scalar('mAP/bbox_AP50-95', bbox_stats[0], global_step)
+                writer.add_scalar('mAP/bbox_AP50', bbox_stats[1], global_step)
+                writer.add_scalar('mAP/bbox_AP75', bbox_stats[2], global_step)
+                writer.add_scalar('mAP/bbox_AP_small', bbox_stats[3], global_step)
+                writer.add_scalar('mAP/bbox_AP_medium', bbox_stats[4], global_step)
+                writer.add_scalar('mAP/bbox_AP_large', bbox_stats[5], global_step)
+                
+            if 'segm' in iou_types:
+                segm_stats = coco_evaluator.coco_eval['segm'].stats
+                writer.add_scalar('mAP/segm_AP50-95', segm_stats[0], global_step)
+                writer.add_scalar('mAP/segm_AP50', segm_stats[1], global_step)
+                writer.add_scalar('mAP/segm_AP75', segm_stats[2], global_step)
+                writer.add_scalar('mAP/segm_AP_small', segm_stats[3], global_step)
+                writer.add_scalar('mAP/segm_AP_medium', segm_stats[4], global_step)
+                writer.add_scalar('mAP/segm_AP_large', segm_stats[5], global_step)
 
     return stats, coco_evaluator
