@@ -6,13 +6,13 @@ ema_decay: 0.9999
 ema_warmups: 50
 epoches: 100
 find_unused_parameters: false
-flat_epoch: 70
+flat_epoch: 50
 last_epoch: -1
 lr_gamma: 0.5
 lrsheduler: flatcosine
 no_aug_epoch: 3
 num_workers: 0
-output_dir: ./outputs/deim_hgnetv2_s_pcb_100e_warm50_noaug3_flat70
+output_dir: ./outputs/deim_hgnetv2_s_vehicles
 print_freq: 100
 resume: null
 seed: null
@@ -125,8 +125,8 @@ yaml_cfg:
     warmups: 1000
   epoches: 132
   eval_spatial_size: &id001
-  - 640
-  - 640
+  - 320
+  - 320
   evaluator:
     iou_types:
     - bbox
@@ -145,7 +145,7 @@ yaml_cfg:
   lrsheduler: flatcosine
   model: DEIM
   no_aug_epoch: 12
-  num_classes: 2
+  num_classes: 13
   optimizer:
     betas:
     - 0.9
@@ -179,15 +179,15 @@ yaml_cfg:
       stop_epoch: 120
       type: BatchImageCollateFunction
     dataset:
-      ann_file: /home/dnth/Downloads/PCB Holes.v4i.coco/train/_annotations.coco.json
-      img_folder: /home/dnth/Downloads/PCB Holes.v4i.coco/train
+      ann_file: /home/dnth/Downloads/vehicles.v2-release.coco/train/_annotations.coco.json
+      img_folder: /home/dnth/Downloads/vehicles.v2-release.coco/train
       return_masks: false
       transforms:
         mosaic_prob: 0.5
         ops:
         - fill_value: 0
           max_cached_images: 50
-          output_size: 640
+          output_size: 320
           probability: 1.0
           random_pop: true
           rotation_range: 10
@@ -234,7 +234,7 @@ yaml_cfg:
     drop_last: true
     num_workers: 4
     shuffle: true
-    total_batch_size: 16
+    total_batch_size: 10
     type: DataLoader
   use_amp: true
   use_ema: true
@@ -243,8 +243,8 @@ yaml_cfg:
     collate_fn:
       type: BatchImageCollateFunction
     dataset:
-      ann_file: /home/dnth/Downloads/PCB Holes.v4i.coco/valid/_annotations.coco.json
-      img_folder: /home/dnth/Downloads/PCB Holes.v4i.coco/valid
+      ann_file: /home/dnth/Downloads/vehicles.v2-release.coco/valid/_annotations.coco.json
+      img_folder: /home/dnth/Downloads/vehicles.v2-release.coco/valid
       return_masks: false
       transforms:
         ops:
@@ -258,6 +258,6 @@ yaml_cfg:
     drop_last: false
     num_workers: 4
     shuffle: false
-    total_batch_size: 16
+    total_batch_size: 10
     type: DataLoader
   warmup_iter: 2000
