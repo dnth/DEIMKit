@@ -13,7 +13,7 @@ conf = configure_dataset(
     val_batch_size=16,
     num_classes=2,
     remap_mscoco=False,
-    output_dir="./outputs/deim_hgnetv2_s_pcb_100e_warm50",
+    output_dir="./outputs/deim_hgnetv2_s_pcb_100e_warm50_noaug3_flat70",
 )
 
 
@@ -22,10 +22,9 @@ trainer = Trainer(conf)
 trainer.fit(
     epochs=100,
     flat_epoch=50,
-    no_aug_epoch=10,
+    no_aug_epoch=3,
     warmup_iter=50,
-    ema_warmups=50,
-    # verbose=False,
+    ema_warmups=50
 )
 
 conf.save("my_train_config.yml")

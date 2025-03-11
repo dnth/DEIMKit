@@ -3,16 +3,16 @@ checkpoint_freq: 4
 clip_max_norm: 0.1
 device: ''
 ema_decay: 0.9999
-ema_warmups: 300
+ema_warmups: 50
 epoches: 100
 find_unused_parameters: false
-flat_epoch: 50
+flat_epoch: 70
 last_epoch: -1
 lr_gamma: 0.5
 lrsheduler: flatcosine
-no_aug_epoch: 10
+no_aug_epoch: 3
 num_workers: 0
-output_dir: ./outputs/deim_hgnetv2_s_pcb_100e
+output_dir: ./outputs/deim_hgnetv2_s_pcb_100e_warm50_noaug3_flat70
 print_freq: 100
 resume: null
 seed: null
@@ -22,7 +22,7 @@ task: detection
 tuning: null
 use_amp: true
 use_ema: true
-warmup_iter: 300
+warmup_iter: 50
 yaml_cfg:
   DEIM:
     backbone: HGNetv2
