@@ -144,4 +144,6 @@ Monitor training progress
 tensorboard --logdir ./outputs/deim_hgnetv2_s_pcb
 ```
 
+Navigate to the http://localhost:6006/ in your browser to view the training progress.
 
+![alt text](assets/tensorboard.png)
