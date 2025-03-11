@@ -80,41 +80,7 @@ class Predictor:
                 model_name, CHECKPOINT_URLS[model_name]
             )
 
-        # Initialize distributed environment for single-process inference
-        # This prevents errors when loading models that check for distributed rank
-        if not torch.distributed.is_initialized():
-            try:
-                # Use file:// method with a temporary file instead of env://
-                with tempfile.NamedTemporaryFile(delete=False) as tf:
-                    init_file = tf.name
-                torch.distributed.init_process_group(
-                    backend="gloo",
-                    init_method=f"file://{init_file}",
-                    rank=0,
-                    world_size=1,
-                )
-                # Clean up the temp file
-                if os.path.exists(init_file):
-                    os.unlink(init_file)
-                logger.debug("Successfully initialized distributed environment")
-            except Exception as e:
-                logger.warning(f"Failed to initialize distributed environment: {e}")
-                logger.info("Falling back to rank function patch")
-                # If distributed initialization fails, we'll patch the rank function
-                # to avoid the distributed check in the model
-                if not hasattr(torch.distributed, "_original_get_rank"):
-                    torch.distributed._original_get_rank = torch.distributed.get_rank
-                    torch.distributed.get_rank = lambda *args, **kwargs: 0
-
-        # Load configuration
-        logger.info(f"Loading configuration from model name: {model_name}")
-        self.cfg = Config.from_model_name(model_name)
-
-        # Disable pretrained flag to avoid downloading weights
-        if "HGNetv2" in self.cfg.yaml_cfg:
-            self.cfg.yaml_cfg["HGNetv2"]["pretrained"] = False
-
-        # Load checkpoint
+        # Load checkpoint first to determine model configuration
         if checkpoint_path is None or not os.path.exists(checkpoint_path):
             raise ValueError(f"Invalid checkpoint_path: {checkpoint_path}")
 
@@ -124,9 +90,27 @@ class Predictor:
         else:
             state = checkpoint["model"]
 
+        # Determine number of classes from checkpoint
+        num_classes = None
+        for key, value in state.items():
+            if "class_embed" in key and len(value.shape) == 2:
+                num_classes = value.shape[0] - 1  # minus "background" class
+                break
+
+        # Load configuration with correct number of classes
+        logger.info(f"Loading configuration from model name: {model_name}")
+        self.cfg = Config.from_model_name(model_name)
+        if num_classes is not None and checkpoint is not None:
+            logger.info(f"Updating model configuration for {num_classes} classes")
+            self.cfg.yaml_cfg["num_classes"] = num_classes
+
+        # Disable pretrained flag to avoid downloading weights
+        if "HGNetv2" in self.cfg.yaml_cfg:
+            self.cfg.yaml_cfg["HGNetv2"]["pretrained"] = False
+
         # Load model state
         try:
-            self.cfg.model.load_state_dict(state, strict=False)
+            self.cfg.model.load_state_dict(state)
         except RuntimeError as e:
             logger.warning(f"Could not load checkpoint with non-strict loading: {e}")
             logger.warning("Attempting to adapt parameters with shape mismatches...")
