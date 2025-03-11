@@ -12,7 +12,6 @@ conf = configure_dataset(
     train_batch_size=16,
     val_batch_size=16,
     num_classes=2,
-    remap_mscoco=False,
     output_dir="./outputs/deim_hgnetv2_s_pcb_100e_warm50_noaug3_flat70",
 )
 
