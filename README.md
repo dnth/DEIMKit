@@ -11,9 +11,9 @@
 
 ## Why DEIMKit?
 
-- Python instead of config files.
-- Easy to install and use on any platform.
-- Simple Python interface.
+- Python instead of config files - Configure your model and dataset in a Python script instead of multiple config files.
+- Easy to install and use on any platform - One liner pip installation.
+- Simple Python interface - Load a model, make predictions, train a model, all in a few lines of code.
 
 ## Supported Features
 
