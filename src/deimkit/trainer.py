@@ -176,12 +176,14 @@ class Trainer:
 
     def fit(
         self,
-        epochs: int = None,
-        flat_epoch: int = None,
-        no_aug_epoch: int = None,
-        warmup_iter: int = None,
-        ema_warmups: int = None,
-        lr: float = None,
+        epochs: int | None = None,
+        flat_epoch: int | None = None,
+        no_aug_epoch: int | None = None,
+        warmup_iter: int | None = None,
+        ema_warmups: int | None = None,
+        lr: float | None = None,
+        stop_epoch: int = 1000000000,
+        mixup_epochs: list[int] | None = None,
     ):
         """
         Train the model according to the configuration.
@@ -193,10 +195,12 @@ class Trainer:
             warmup_iter: Number of warmup iterations. If None, uses config value.
             ema_warmups: Number of EMA warmup steps. If None, uses config value.
             lr: Learning rate override. If None, uses config value.
+            stop_epoch: Controls when multi-scale training should stop. A large value means continue training with multi-scale without stopping.
+            mixup_epochs: List of two integers that defines the epoch range during which mixup augmentation is active.
+                          If None, automatically calculated as [3%, 50%] of total epochs.
         """
 
         logger.info("Starting training...")
-        self._setup()
 
         if epochs is not None:
             logger.info(f"Overriding epochs to {epochs}")
@@ -218,7 +222,12 @@ class Trainer:
             self.config.yaml_cfg["optimizer"]["lr"] = lr
             # Update optimizer's learning rate
             for param_group in self.optimizer.param_groups:
-                param_group['lr'] = lr
+                param_group["lr"] = lr
+
+        # Set the stop epoch
+        self.config.yaml_cfg["train_dataloader"]["collate_fn"]["stop_epoch"] = (
+            stop_epoch
+        )
 
         # Get training parameters
         num_epochs = self.config.get("epoches", 50)
@@ -226,7 +235,31 @@ class Trainer:
         print_freq = self.config.get("print_freq", 100)
         checkpoint_freq = self.config.get("checkpoint_freq", 4)
 
-        # Training statistics
+        # Calculate mixup epochs if not provided
+        if mixup_epochs is None:
+            # Calculate as 3% and 50% of total epochs
+            start_mixup = max(1, int(num_epochs * 0.04))  # At least epoch 1
+            end_mixup = int(num_epochs * 0.5)
+            mixup_epochs = [start_mixup, end_mixup]
+            self.config.yaml_cfg["train_dataloader"]["collate_fn"]["mixup_epochs"] = (
+                mixup_epochs
+            )
+            logger.info(f"Automatically calculated mixup epochs: {mixup_epochs}")
+
+            # Data Augmentation Epochs. Gradually reduce data augmentation at these epochs.
+            data_aug_1 = start_mixup
+            data_aug_2 = end_mixup
+            data_aug_3 = int(num_epochs * 0.9)
+
+            self.config.yaml_cfg["train_dataloader"]["dataset"]["transforms"]["policy"][
+                "epoch"
+            ] = [data_aug_1, data_aug_2, data_aug_3]
+            logger.info(
+                f"Automatically calculated data augmentation epochs: {data_aug_1}, {data_aug_2}, {data_aug_3}"
+            )
+
+        self._setup()  # Sends all configs to the solver
+
         best_stats = {"epoch": -1}
         top1 = 0
 
@@ -299,7 +332,7 @@ class Trainer:
             # Calculate global step for tensorboard logging
             global_step = (epoch + 1) * len(self.train_dataloader)
             writer = self.solver.writer if hasattr(self.solver, "writer") else None
-            
+
             # Pass writer and global_step to evaluate
             eval_stats, _ = evaluate(
                 self.ema.module if self.ema else self.model,
@@ -309,7 +342,7 @@ class Trainer:
                 self.evaluator,
                 self.device,
                 writer=writer,
-                global_step=global_step
+                global_step=global_step,
             )
 
             # Update best stats
@@ -362,10 +395,10 @@ class Trainer:
 
             # Log mAP to tensorboard directly here as well
             if writer is not None:
-                writer.add_scalar('metrics/mAP', coco_map, global_step)
-                
+                writer.add_scalar("metrics/mAP", coco_map, global_step)
+
                 # Also log best mAP so far
-                writer.add_scalar('metrics/best_mAP', top1, global_step)
+                writer.add_scalar("metrics/best_mAP", top1, global_step)
 
             logger.info(
                 f"Epoch {epoch} - Train loss: {train_stats['loss']:.4f}, Eval mAP: {coco_map:.4f}"
