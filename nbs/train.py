@@ -1,6 +1,6 @@
 from deimkit import Trainer, Config, configure_dataset
 
-conf = Config.from_model_name("deim_hgnetv2_s")
+conf = Config.from_model_name("deim_hgnetv2_n")
 
 conf = configure_dataset(
     config=conf,
@@ -12,7 +12,7 @@ conf = configure_dataset(
     train_batch_size=10,
     val_batch_size=10,
     num_classes=13,
-    output_dir="./outputs/deim_hgnetv2_s_vehicles",
+    output_dir="./outputs/deim_hgnetv2_n_vehicles",
 )
 
 # def update_learning_rate(config: Config, lr: float = 0.0007) -> Config:

@@ -82,6 +82,8 @@ list_models()
  'deim_hgnetv2_x']
 ```
 
+### Inference
+
 Load a pretrained model by the original authors
 
 ```python
@@ -102,25 +104,37 @@ model = load_model(
 )
 ```
 
-Run inference
+Run inference on an image
 
 ```python
 result = model.predict(image_path, visualize=True)
 ```
 
+Access the visualization
+
 ```python
 result.visualization
 ```
-
 ![alt text](assets/sample_result.jpg)
 
+You can also run batch inference
 
-See the [demo notebook](nbs/pretrained-model-inference.ipynb) for more details.
+```python
+results = model.predict_batch(image_paths, visualize=True)
+```
 
-> [!NOTE]
-> If you have a trained custom model you can also load it using the `load_model` function in the same way. Read more in the [custom model inference](nbs/custom-model-inference.ipynb) section.
+And plot the results
 
-Training with your own dataset
+![alt text](assets/sample_result_batch.png)
+
+
+See the [demo notebook on using pretrained models](nbs/pretrained-model-inference.ipynb) and [custom model inference](nbs/custom-model-inference.ipynb) for more details.
+
+### Training
+
+DEIMKit provides a simple interface for training your own models.
+
+To start, configure the dataset. Specify the model, the dataset path, batch size, etc.
 
 ```python
 from deimkit import Trainer, Config, configure_dataset
@@ -149,6 +163,9 @@ trainer.fit(
     ema_warmups=50     # Number of warmup steps for EMA
 )
 ```
+
+> [!CAUTION]
+> Your dataset should be in COCO format. The class index should **start from 0**. Refer to the structure of a sample dataset exported from [Roboflow](https://universe.roboflow.com/rf-projects/pcb-holes/dataset/4). From my tests this works for DEIMKit.
 
 Monitor training progress
 
