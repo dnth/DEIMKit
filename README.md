@@ -180,3 +180,6 @@ tensorboard --logdir ./outputs/deim_hgnetv2_s_pcb
 Navigate to the http://localhost:6006/ in your browser to view the training progress.
 
 ![alt text](assets/tensorboard.png)
+
+## Disclaimer
+I'm not affiliated with the original DEIM authors. I just found the model interesting and wanted to try it out. The changes made here are of my own. Please cite and star the original repo if you find this useful.

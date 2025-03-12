@@ -3,26 +3,26 @@ checkpoint_freq: 4
 clip_max_norm: 0.1
 device: ''
 ema_decay: 0.9999
-ema_warmups: 1317
-epoches: 100
+ema_warmups: 2000
+epoches: 132
 find_unused_parameters: false
-flat_epoch: 50
+flat_epoch: 64
 last_epoch: -1
 lr_gamma: 0.5
 lrsheduler: flatcosine
-no_aug_epoch: 3
+no_aug_epoch: 12
 num_workers: 0
-output_dir: ./outputs/deim_hgnetv2_s_vehicles_adjust_warmup_pretrained
+output_dir: ./outputs/deim_hgnetv2_s_pcb
 print_freq: 100
 resume: null
 seed: null
 summary_dir: null
-sync_bn: false
+sync_bn: true
 task: detection
 tuning: null
 use_amp: true
 use_ema: true
-warmup_iter: 1317
+warmup_iter: 2000
 yaml_cfg:
   DEIM:
     backbone: HGNetv2
@@ -145,7 +145,7 @@ yaml_cfg:
   lrsheduler: flatcosine
   model: DEIM
   no_aug_epoch: 12
-  num_classes: 13
+  num_classes: 2
   optimizer:
     betas:
     - 0.9
@@ -174,55 +174,24 @@ yaml_cfg:
       ema_restart_decay: 0.9999
       mixup_epochs:
       - 4
-      - 50
+      - 64
       mixup_prob: 0.5
-      stop_epoch: 1000000000
+      stop_epoch: 120
       type: BatchImageCollateFunction
     dataset:
-      ann_file: /home/dnth/Downloads/vehicles.v2-release.coco/train/_annotations.coco.json
-      img_folder: /home/dnth/Downloads/vehicles.v2-release.coco/train
+      ann_file: /home/dnth/Downloads/PCB Holes.v4i.coco/train/_annotations.coco.json
+      img_folder: /home/dnth/Downloads/PCB Holes.v4i.coco/train
       return_masks: false
       transforms:
         mosaic_prob: 0.5
         ops:
         - fill_value: 0
-          max_cached_images: 50
-          output_size: 320
-          probability: 1.0
-          random_pop: true
-          rotation_range: 10
-          scaling_range:
-          - 0.5
-          - 1.5
-          translation_range:
-          - 0.1
-          - 0.1
           type: Mosaic
-          use_cache: false
-        - p: 0.5
-          type: RandomPhotometricDistort
-        - fill: 0
-          type: RandomZoomOut
-        - p: 0.8
-          type: RandomIoUCrop
-        - min_size: 1
-          type: SanitizeBoundingBoxes
-        - type: RandomHorizontalFlip
-        - size: *id001
-          type: Resize
-        - min_size: 1
-          type: SanitizeBoundingBoxes
-        - dtype: float32
-          scale: true
-          type: ConvertPILImage
-        - fmt: cxcywh
-          normalize: true
-          type: ConvertBoxes
         policy:
           epoch:
           - 4
-          - 50
-          - 90
+          - 64
+          - 120
           name: stop_epoch
           ops:
           - Mosaic
@@ -234,7 +203,7 @@ yaml_cfg:
     drop_last: true
     num_workers: 4
     shuffle: true
-    total_batch_size: 8
+    total_batch_size: 16
     type: DataLoader
   use_amp: true
   use_ema: true
@@ -243,8 +212,8 @@ yaml_cfg:
     collate_fn:
       type: BatchImageCollateFunction
     dataset:
-      ann_file: /home/dnth/Downloads/vehicles.v2-release.coco/valid/_annotations.coco.json
-      img_folder: /home/dnth/Downloads/vehicles.v2-release.coco/valid
+      ann_file: /home/dnth/Downloads/PCB Holes.v4i.coco/valid/_annotations.coco.json
+      img_folder: /home/dnth/Downloads/PCB Holes.v4i.coco/valid
       return_masks: false
       transforms:
         ops:
@@ -258,6 +227,6 @@ yaml_cfg:
     drop_last: false
     num_workers: 4
     shuffle: false
-    total_batch_size: 8
+    total_batch_size: 16
     type: DataLoader
   warmup_iter: 2000

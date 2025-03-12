@@ -3,16 +3,16 @@ checkpoint_freq: 4
 clip_max_norm: 0.1
 device: ''
 ema_decay: 0.9999
-ema_warmups: 1317
-epoches: 100
+ema_warmups: 200
+epoches: 70
 find_unused_parameters: false
-flat_epoch: 50
+flat_epoch: 35
 last_epoch: -1
 lr_gamma: 0.5
 lrsheduler: flatcosine
-no_aug_epoch: 3
+no_aug_epoch: 5
 num_workers: 0
-output_dir: ./outputs/deim_hgnetv2_s_vehicles_adjust_warmup_pretrained
+output_dir: ./outputs/test_custom_transforms/deim_hgnetv2_n_vehicles
 print_freq: 100
 resume: null
 seed: null
@@ -22,7 +22,7 @@ task: detection
 tuning: null
 use_amp: true
 use_ema: true
-warmup_iter: 1317
+warmup_iter: 200
 yaml_cfg:
   DEIM:
     backbone: HGNetv2
@@ -84,7 +84,7 @@ yaml_cfg:
     freeze_norm: false
     local_model_dir: ../RT-DETR-main/D-FINE/weight/hgnetv2/
     name: B0
-    pretrained: true
+    pretrained: false
     return_idx:
     - 1
     - 2
@@ -173,8 +173,8 @@ yaml_cfg:
       base_size_repeat: 20
       ema_restart_decay: 0.9999
       mixup_epochs:
-      - 4
-      - 50
+      - 2
+      - 35
       mixup_prob: 0.5
       stop_epoch: 1000000000
       type: BatchImageCollateFunction
@@ -220,9 +220,9 @@ yaml_cfg:
           type: ConvertBoxes
         policy:
           epoch:
-          - 4
-          - 50
-          - 90
+          - 2
+          - 35
+          - 63
           name: stop_epoch
           ops:
           - Mosaic
@@ -234,7 +234,7 @@ yaml_cfg:
     drop_last: true
     num_workers: 4
     shuffle: true
-    total_batch_size: 8
+    total_batch_size: 10
     type: DataLoader
   use_amp: true
   use_ema: true
@@ -258,6 +258,6 @@ yaml_cfg:
     drop_last: false
     num_workers: 4
     shuffle: false
-    total_batch_size: 8
+    total_batch_size: 10
     type: DataLoader
   warmup_iter: 2000
