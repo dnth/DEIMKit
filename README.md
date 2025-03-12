@@ -159,13 +159,7 @@ conf = configure_dataset(
 )
 
 trainer = Trainer(conf)
-trainer.fit(
-    epochs=100,        # Total number of epochs to train
-    flat_epoch=50,     # Starting epoch to train with fixed learning rate
-    no_aug_epoch=3,    # Ending epoch to train without data augmentation
-    warmup_iter=50,    # Number of steps for learning rate warmup
-    ema_warmups=50     # Number of warmup steps for EMA
-)
+trainer.fit(epochs=100)
 ```
 
 > [!CAUTION]

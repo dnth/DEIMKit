@@ -12,10 +12,10 @@ conf = configure_dataset(
     train_batch_size=8,
     val_batch_size=8,
     num_classes=13,
-    output_dir="./outputs/deim_hgnetv2_s_vehicles",
+    output_dir="./outputs/deim_hgnetv2_s_vehicles_10epochs",
 )
 
 
 trainer = Trainer(conf)
 
-trainer.fit(epochs=50)
+trainer.fit(epochs=10)
