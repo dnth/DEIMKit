@@ -120,7 +120,7 @@ result.visualization
 You can also run batch inference
 
 ```python
-results = model.predict_batch(image_paths, visualize=True)
+results = model.predict_batch(image_paths, visualize=True, batch_size=8)
 ```
 
 And plot the results
