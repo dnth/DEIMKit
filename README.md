@@ -125,10 +125,10 @@ results = model.predict_batch(image_paths, visualize=True, batch_size=8)
 
 Here are some sample results I got by training on customs datasets.
 
-RBC Cells Dataset
+Vehicles Dataset
 ![alt text](assets/sample_result_batch_0.png)
 
-Vehicles Dataset
+RBC Cells Dataset
 ![alt text](assets/sample_result_batch_1.png)
 
 
