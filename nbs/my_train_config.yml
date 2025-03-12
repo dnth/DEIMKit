@@ -3,7 +3,7 @@ checkpoint_freq: 4
 clip_max_norm: 0.1
 device: ''
 ema_decay: 0.9999
-ema_warmups: 50
+ema_warmups: 1317
 epoches: 100
 find_unused_parameters: false
 flat_epoch: 50
@@ -12,7 +12,7 @@ lr_gamma: 0.5
 lrsheduler: flatcosine
 no_aug_epoch: 3
 num_workers: 0
-output_dir: ./outputs/deim_hgnetv2_s_vehicles
+output_dir: ./outputs/deim_hgnetv2_s_vehicles_adjust_warmup_pretrained
 print_freq: 100
 resume: null
 seed: null
@@ -22,7 +22,7 @@ task: detection
 tuning: null
 use_amp: true
 use_ema: true
-warmup_iter: 50
+warmup_iter: 1317
 yaml_cfg:
   DEIM:
     backbone: HGNetv2
@@ -84,7 +84,7 @@ yaml_cfg:
     freeze_norm: false
     local_model_dir: ../RT-DETR-main/D-FINE/weight/hgnetv2/
     name: B0
-    pretrained: false
+    pretrained: true
     return_idx:
     - 1
     - 2
@@ -169,14 +169,14 @@ yaml_cfg:
   task: detection
   train_dataloader:
     collate_fn:
-      base_size: 640
+      base_size: 320
       base_size_repeat: 20
       ema_restart_decay: 0.9999
       mixup_epochs:
       - 4
-      - 64
+      - 50
       mixup_prob: 0.5
-      stop_epoch: 120
+      stop_epoch: 1000000000
       type: BatchImageCollateFunction
     dataset:
       ann_file: /home/dnth/Downloads/vehicles.v2-release.coco/train/_annotations.coco.json
@@ -221,8 +221,8 @@ yaml_cfg:
         policy:
           epoch:
           - 4
-          - 64
-          - 120
+          - 50
+          - 90
           name: stop_epoch
           ops:
           - Mosaic
@@ -234,7 +234,7 @@ yaml_cfg:
     drop_last: true
     num_workers: 4
     shuffle: true
-    total_batch_size: 10
+    total_batch_size: 8
     type: DataLoader
   use_amp: true
   use_ema: true
@@ -258,6 +258,6 @@ yaml_cfg:
     drop_last: false
     num_workers: 4
     shuffle: false
-    total_batch_size: 10
+    total_batch_size: 8
     type: DataLoader
   warmup_iter: 2000

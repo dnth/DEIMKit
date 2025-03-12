@@ -12,43 +12,10 @@ conf = configure_dataset(
     train_batch_size=8,
     val_batch_size=8,
     num_classes=13,
-    output_dir="./outputs/deim_hgnetv2_s_vehicles_adjust_epochs",
+    output_dir="./outputs/deim_hgnetv2_s_vehicles_adjust_no_aug",
 )
 
-# def update_learning_rate(config: Config, lr: float = 0.0007) -> Config:
-#     """
-#     Update the learning rate in the configuration for both optimizer params and base lr.
-    
-#     Args:
-#         config: The configuration object
-#         lr: The new learning rate value (default: 0.0007)
-    
-#     Returns:
-#         Config: The updated configuration object
-#     """
-#     # Get the current params list
-#     params_list = config.get('yaml_cfg.optimizer.params')
-    
-#     # Update the learning rate for backbone parameters (first entry in the list)
-#     params_list[0]['lr'] = lr
-    
-#     # Set the updated params list back to the config
-#     config.set('yaml_cfg.optimizer.params', params_list)
-#     config.set('yaml_cfg.optimizer.lr', lr)
-    
-#     return config
-
-# # Update the learning rate using the new function
-# conf = update_learning_rate(conf, lr=0.0007)
 
 trainer = Trainer(conf)
-# trainer.fit(epochs=60, flat_epoch=30, no_aug_epoch=3, warmup_iter=100, ema_warmups=100)
-trainer.fit(
-    epochs=100,
-    flat_epoch=50,
-    no_aug_epoch=3,
-    warmup_iter=50,
-    ema_warmups=50,
-)
 
-conf.save("my_train_config.yml")
+trainer.fit(epochs=50)

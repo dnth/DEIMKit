@@ -130,11 +130,11 @@ class Trainer:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Modify config to avoid distributed issues
-        if "HGNetv2" in self.config.yaml_cfg:
-            logger.info(
-                "Setting HGNetv2 pretrained to False to avoid distributed issues"
-            )
-            self.config.yaml_cfg["HGNetv2"]["pretrained"] = False
+        # if "HGNetv2" in self.config.yaml_cfg:
+        #     logger.info(
+        #         "Setting HGNetv2 pretrained to False to avoid distributed issues"
+        #     )
+        #     self.config.yaml_cfg["HGNetv2"]["pretrained"] = False
 
         # Disable sync_bn and find_unused_parameters which require multi-GPU
         logger.info(
@@ -174,6 +174,9 @@ class Trainer:
 
         logger.info(f"Training setup complete. Output directory: {self.output_dir}")
 
+        logger.info(f"Saving config to {self.output_dir}/train_config.yml")
+        self.config.save(f"{self.output_dir}/config.yml")
+
     def fit(
         self,
         epochs: int | None = None,
@@ -208,9 +211,6 @@ class Trainer:
         if flat_epoch is not None:
             logger.info(f"Overriding flat epochs to {flat_epoch}")
             self.config.flat_epoch = flat_epoch
-        if no_aug_epoch is not None:
-            logger.info(f"Overriding no augmentation epochs to {no_aug_epoch}")
-            self.config.no_aug_epoch = no_aug_epoch
         if warmup_iter is not None:
             logger.info(f"Overriding warmup iterations to {warmup_iter}")
             self.config.warmup_iter = warmup_iter
@@ -257,6 +257,53 @@ class Trainer:
             logger.info(
                 f"Automatically calculated data augmentation epochs: {data_aug_1}, {data_aug_2}, {data_aug_3}"
             )
+
+        if no_aug_epoch is None:
+            no_aug_epoch = max(
+                1, int(num_epochs * 0.13)
+            )  # No augmentation epochs of 13% from total epochs
+            self.config.no_aug_epoch = no_aug_epoch
+            logger.info(
+                f"Automatically calculated no augmentation epochs: {no_aug_epoch}"
+            )
+        else:
+            logger.info(f"Using provided no augmentation epochs: {no_aug_epoch}")
+            self.config.no_aug_epoch = no_aug_epoch
+
+        # Handle flat_epoch - automatically calculate if None
+        if flat_epoch is None:
+            flat_epoch = max(
+                1, int(num_epochs * 0.5)
+            )  # Half of total epochs, at least 1
+            logger.info(f"Automatically calculated flat epochs: {flat_epoch}")
+        else:
+            logger.info(f"Using provided flat epochs: {flat_epoch}")
+
+        if warmup_iter is None:
+            # Get number of images from train folder
+            num_images = len(
+                os.listdir(
+                    self.config.yaml_cfg["train_dataloader"]["dataset"]["img_folder"]
+                )
+            )
+
+            # Calculate num iterations per epoch - num_images / batch_size
+            iter_per_epoch = (
+                num_images
+                / self.config.yaml_cfg["train_dataloader"]["total_batch_size"]
+            )
+
+            # Calculate how many iterations for 4 epochs
+            warmup_iter = int(iter_per_epoch * 4)
+
+            # Set warmup_iter to that
+            self.config.warmup_iter = warmup_iter
+            logger.info(f"Automatically calculated warmup iterations: {warmup_iter}")
+
+        if ema_warmups is None:
+            ema_warmups = warmup_iter
+            self.config.ema_warmups = ema_warmups
+            logger.info(f"Automatically calculated EMA warmups: {ema_warmups}")
 
         self._setup()  # Sends all configs to the solver
 
@@ -381,6 +428,9 @@ class Trainer:
                     if k != "epoch" and best_stats[k] > top1:
                         top1 = best_stats[k]
                         if self.output_dir:
+                            logger.info(
+                                f"🚀 Saving best checkpoint to {self.output_dir}/best.pth"
+                            )
                             self._save_checkpoint(
                                 epoch, eval_stats, self.output_dir / "best.pth"
                             )
@@ -403,7 +453,7 @@ class Trainer:
             logger.info(
                 f"Epoch {epoch} - Train loss: {train_stats['loss']:.4f}, Eval mAP: {coco_map:.4f}"
             )
-            logger.info(f"Best stats: {best_stats}")
+            logger.info(f"✅ Best stats: {best_stats}")
 
         # Log training time
         total_time = time.time() - start_time
