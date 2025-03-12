@@ -174,7 +174,7 @@ class Trainer:
 
         logger.info(f"Training setup complete. Output directory: {self.output_dir}")
 
-        logger.info(f"Saving config to {self.output_dir}/train_config.yml")
+        logger.info(f"Saving config to {self.output_dir}/config.yml")
         self.config.save(f"{self.output_dir}/config.yml")
 
     def fit(
@@ -270,11 +270,11 @@ class Trainer:
             logger.info(f"Using provided no augmentation epochs: {no_aug_epoch}")
             self.config.no_aug_epoch = no_aug_epoch
 
-        # Handle flat_epoch - automatically calculate if None
         if flat_epoch is None:
             flat_epoch = max(
                 1, int(num_epochs * 0.5)
             )  # Half of total epochs, at least 1
+            self.config.flat_epoch = flat_epoch
             logger.info(f"Automatically calculated flat epochs: {flat_epoch}")
         else:
             logger.info(f"Using provided flat epochs: {flat_epoch}")
