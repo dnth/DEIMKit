@@ -12,7 +12,7 @@
 ## Why DEIMKit?
 
 - Python instead of config files - Configure your model and dataset in a Python script instead of multiple config files.
-- Easy to install and use on any platform - One liner pip installation.
+- Easy to install and use on any platform - One liner installation. I've only tested on Linux, but it should work on any platform.
 - Simple Python interface - Load a model, make predictions, train a model, all in a few lines of code.
 
 ## Supported Features
@@ -123,9 +123,13 @@ You can also run batch inference
 results = model.predict_batch(image_paths, visualize=True, batch_size=8)
 ```
 
-And plot the results
+Here are some sample results I got by training on customs datasets.
 
+RBC Cells Dataset
 ![alt text](assets/sample_result_batch.png)
+
+Vehicles Dataset
+![alt text](assets/sample_result_batch_1.png)
 
 
 See the [demo notebook on using pretrained models](nbs/pretrained-model-inference.ipynb) and [custom model inference](nbs/custom-model-inference.ipynb) for more details.
