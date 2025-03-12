@@ -509,7 +509,6 @@ class Trainer:
             metrics: Evaluation metrics.
             checkpoint_path: Path to save the checkpoint.
         """
-        logger.info(f"Saving checkpoint to {checkpoint_path}")
 
         # Create state dictionary
         state = {
