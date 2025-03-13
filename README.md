@@ -214,7 +214,12 @@ python scripts/live_inference.py
 ```
 
 
-https://github.com/user-attachments/assets/714cfbee-d134-479b-869e-81c01e22ce6a
+
+https://github.com/user-attachments/assets/5066768f-c97e-4999-af81-ffd29d88f529
+
+
+
+
 
 
 For webcam inference, the output video will be saved as `onnx_result.mp4` in the current directory.
