@@ -13,7 +13,7 @@ dependencies = [
     "opencv-python>=4.11.0.86,<5",
     "gdown>=5.2.0,<6",
     "loguru>=0.7.3,<0.8",
-    "matplotlib",
+    "matplotlib", "onnx>=1.17.0,<2", "gradio>=5.20.1,<6", "onnxruntime>=1.21.0,<2", "onnxsim>=0.4.36,<0.5",
 ]
 
 [build-system]
