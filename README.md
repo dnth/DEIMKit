@@ -211,6 +211,10 @@ python scripts/live_inference.py
     --input-size 320            # Input size for the model
 ```
 
+
+https://github.com/user-attachments/assets/714cfbee-d134-479b-869e-81c01e22ce6a
+
+
 For webcam inference, the output video will be saved as `onnx_result.mp4` in the current directory.
 
 ```bash
