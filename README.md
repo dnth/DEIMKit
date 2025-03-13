@@ -201,7 +201,8 @@ python scripts/gradio_demo.py
 ![alt text](assets/gradio_demo.png)
 
 ### Live Inference
-Run live inference on a video, image or webcam using ONNXRuntime.
+Run live inference on a video, image or webcam using ONNXRuntime. This runs on CPU by default.
+If you would like to use the CUDA backend, you can install the `onnxruntime-gpu` package and uninstall the `onnxruntime` package.
 
 For video inference, specify the path to the video file as the input. Output video will be saved as `onnx_result.mp4` in the current directory.
 
