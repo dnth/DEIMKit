@@ -198,6 +198,39 @@ output_path = exporter.to_onnx(
 python scripts/gradio_demo.py
 ```
 
+### Live Inference
+Run live inference on a video, image or webcam using ONNXRuntime.
+
+For video inference, the output video will be saved as `onnx_result.mp4` in the current directory.
+
+```bash
+python scripts/live_inference.py 
+    --onnx model.onnx           # Path to the ONNX model file
+    --input video.mp4           # Path to the input video file
+    --class-names classes.txt   # Path to the classes file with each name on a new row
+    --input-size 320            # Input size for the model
+```
+
+For webcam inference, the output video will be saved as `onnx_result.mp4` in the current directory.
+
+```bash
+python scripts/live_inference.py 
+    --onnx model.onnx           # Path to the ONNX model file
+    --webcam                    # Use webcam as input source
+    --class-names classes.txt   # Path to the classes file
+    --input-size 320            # Input size for the model
+```
+
+For image inference, the output image will be saved as `onnx_result.jpg` in the current directory.
+
+```bash
+python scripts/live_inference.py 
+    --onnx model.onnx           # Path to the ONNX model file
+    --input image.jpg           # Path to the input image file
+    --class-names classes.txt   # Path to the classes file
+    --input-size 320            # Input size for the model
+```
+
 ![alt text](assets/gradio_demo.png)
 
 ## Disclaimer

@@ -10,6 +10,7 @@ from PIL import Image, ImageDraw
 import cv2
 import time
 import colorsys
+from tqdm import tqdm
 
 
 def resize_with_aspect_ratio(image, size, interpolation=Image.BILINEAR):
@@ -138,27 +139,36 @@ def process_video(sess, video_path, class_names=None, input_size=640):
     fps = cap.get(cv2.CAP_PROP_FPS)
     orig_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     orig_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
     # Define the codec and create VideoWriter object
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter('onnx_result.mp4', fourcc, fps, (orig_w, orig_h))
 
-    frame_count = 0
+    print("Processing video frames...")
+    progress_bar = tqdm(total=total_frames, desc="Processing frames", unit="frames")
+    
+    # Create a simple window for displaying the video
+    window_name = 'Video Detection'
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(window_name, min(orig_w, 1280), min(orig_h, 720))
+    
+    # Variables for FPS calculation
     prev_time = time.time()
+    curr_time = 0
     fps_display = 0
     
-    print("Processing video frames...")
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
 
-        # Calculate FPS for display
+        # Calculate FPS
         curr_time = time.time()
-        if curr_time - prev_time > 0:
+        if curr_time - prev_time > 0:  # Avoid division by zero
             fps_display = 1 / (curr_time - prev_time)
         prev_time = curr_time
-
+        
         # Convert frame to PIL image
         frame_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
@@ -205,21 +215,21 @@ def process_video(sess, video_path, class_names=None, input_size=640):
         cv2.putText(display_frame, fps_text, (text_x, text_y), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
-        # Display the frame
-        cv2.imshow('Video Detection', display_frame)
+        # Display the frame in a clean window
+        cv2.imshow(window_name, display_frame)
         
         # Write the frame to output video
         out.write(display_frame)
         
-        frame_count += 1
-        if frame_count % 10 == 0:
-            print(f"Processed {frame_count} frames...")
-            
-        # Break the loop if 'q' is pressed
+        # Update progress bar
+        progress_bar.update(1)
+        
+        # Break if 'q' is pressed
         if cv2.waitKey(1) & 0xFF == ord('q'):
-            print("Processing stopped by user")
+            print("\nProcessing interrupted by user")
             break
 
+    progress_bar.close()
     cap.release()
     out.release()
     cv2.destroyAllWindows()
@@ -334,6 +344,7 @@ def main(args):
     
     # Load the ONNX model with specified providers
     try:
+        print("Loading ONNX model...")
         sess_options = ort.SessionOptions()
         if args.optimization_level is not None:
             # Convert integer to the proper GraphOptimizationLevel enum
