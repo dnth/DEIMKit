@@ -19,7 +19,7 @@
 
 - [x] Inference
 - [x] Training
-- [ ] Export
+- [x] Export
 
 ## Installation
 
@@ -176,6 +176,29 @@ tensorboard --logdir ./outputs/deim_hgnetv2_s_pcb
 Navigate to the http://localhost:6006/ in your browser to view the training progress.
 
 ![alt text](assets/tensorboard.png)
+
+### Export
+
+```python
+from deimkit.exporter import Exporter
+from deimkit.config import Config
+
+config = Config("config.yml")
+exporter = Exporter(config)
+
+output_path = exporter.to_onnx(
+    checkpoint_path="model.pth",
+    output_path="model.onnx"
+)
+```
+
+### Gradio App
+
+```bash
+python scripts/gradio_demo.py
+```
+
+![alt text](assets/gradio_demo.png)
 
 ## Disclaimer
 I'm not affiliated with the original DEIM authors. I just found the model interesting and wanted to try it out. The changes made here are of my own. Please cite and star the original repo if you find this useful.
