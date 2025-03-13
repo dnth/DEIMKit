@@ -187,6 +187,7 @@ class Trainer:
         lr: float | None = None,
         stop_epoch: int | None = None,
         mixup_epochs: list[int] | None = None,
+        save_best_only: bool = False,
     ):
         """
         Train the model according to the configuration.
@@ -201,6 +202,7 @@ class Trainer:
             stop_epoch: Controls when multi-scale training should stop. A large value means continue training with multi-scale without stopping.
             mixup_epochs: List of two integers that defines the epoch range during which mixup augmentation is active.
                           If None, automatically calculated as [3%, 50%] of total epochs.
+            save_best_only: If True, only save the best model checkpoint.
         """
 
         logger.info("Starting training...")
@@ -389,7 +391,7 @@ class Trainer:
             self.last_epoch += 1
 
             # Save checkpoint
-            if self.output_dir and (epoch + 1) % checkpoint_freq == 0:
+            if self.output_dir and (epoch + 1) % checkpoint_freq == 0 and not save_best_only:
                 checkpoint_path = self.output_dir / f"checkpoint{epoch:04}.pth"
                 self._save_checkpoint(epoch, train_stats, checkpoint_path)
 
@@ -475,6 +477,12 @@ class Trainer:
 
             logger.info(f"✅ Current best stats: {best_stats}")
 
+        # Save final checkpoint if not save_best_only
+        if self.output_dir and not save_best_only:
+            final_checkpoint_path = self.output_dir / f"checkpoint_final.pth"
+            self._save_checkpoint(num_epochs-1, eval_stats, final_checkpoint_path)
+            logger.info(f"Final checkpoint saved to {final_checkpoint_path}")
+        
         # Log training time
         total_time = time.time() - start_time
         total_time_str = str(datetime.timedelta(seconds=int(total_time)))
