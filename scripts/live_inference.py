@@ -144,11 +144,20 @@ def process_video(sess, video_path, class_names=None, input_size=640):
     out = cv2.VideoWriter('onnx_result.mp4', fourcc, fps, (orig_w, orig_h))
 
     frame_count = 0
+    prev_time = time.time()
+    fps_display = 0
+    
     print("Processing video frames...")
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
+
+        # Calculate FPS for display
+        curr_time = time.time()
+        if curr_time - prev_time > 0:
+            fps_display = 1 / (curr_time - prev_time)
+        prev_time = curr_time
 
         # Convert frame to PIL image
         frame_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
@@ -178,18 +187,43 @@ def process_video(sess, video_path, class_names=None, input_size=640):
         frame_with_detections = result_images[0]
 
         # Convert back to OpenCV image
-        frame = cv2.cvtColor(np.array(frame_with_detections), cv2.COLOR_RGB2BGR)
+        display_frame = cv2.cvtColor(np.array(frame_with_detections), cv2.COLOR_RGB2BGR)
+        
+        # Add FPS text to the top right corner with dark blue background
+        fps_text = f"FPS: {fps_display:.1f}"
+        text_size = cv2.getTextSize(fps_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+        text_x = display_frame.shape[1] - text_size[0] - 10
+        text_y = 30
+        
+        # Draw background rectangle
+        cv2.rectangle(display_frame, 
+                     (text_x - 5, text_y - text_size[1] - 5), 
+                     (text_x + text_size[0] + 5, text_y + 5), 
+                     (139, 0, 0), -1)  # Dark blue background (BGR format)
+        
+        # Draw text in white
+        cv2.putText(display_frame, fps_text, (text_x, text_y), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
-        # Write the frame
-        out.write(frame)
+        # Display the frame
+        cv2.imshow('Video Detection', display_frame)
+        
+        # Write the frame to output video
+        out.write(display_frame)
+        
         frame_count += 1
-
         if frame_count % 10 == 0:
             print(f"Processed {frame_count} frames...")
+            
+        # Break the loop if 'q' is pressed
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            print("Processing stopped by user")
+            break
 
     cap.release()
     out.release()
-    print("Video processing complete. Result saved as 'result.mp4'.")
+    cv2.destroyAllWindows()
+    print("Video processing complete. Result saved as 'onnx_result.mp4'.")
 
 
 def process_webcam(sess, device_id=0, class_names=None, input_size=640):
