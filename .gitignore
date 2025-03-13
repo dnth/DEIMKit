@@ -2,7 +2,7 @@
 outputs/
 
 # Dataset
-datasets_collections/
+dataset_collections/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
