@@ -165,7 +165,7 @@ trainer.fit(epochs=100)
 > [!CAUTION]
 > Your dataset should be in COCO format. The class index should **start from 0**. Refer to the structure of a sample dataset exported from [Roboflow](https://universe.roboflow.com/rf-projects/pcb-holes/dataset/4). From my tests this works for DEIMKit.
 >
-> The num_classes should be the number of classes in your dataset + 1 for the background class.
+> The `num_classes` should be the number of classes in your dataset + 1 for the background class.
 
 Monitor training progress
 
