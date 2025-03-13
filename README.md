@@ -188,7 +188,7 @@ exporter = Exporter(config)
 
 output_path = exporter.to_onnx(
     checkpoint_path="model.pth",
-    output_path="model.onnx",
+    output_path="model.onnx"
 )
 ```
 
