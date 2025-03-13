@@ -192,6 +192,13 @@ output_path = exporter.to_onnx(
 )
 ```
 
+### Gradio App
+
+```bash
+python scripts/gradio_demo.py
+```
+
+![alt text](assets/gradio_demo.png)
 
 ## Disclaimer
 I'm not affiliated with the original DEIM authors. I just found the model interesting and wanted to try it out. The changes made here are of my own. Please cite and star the original repo if you find this useful.

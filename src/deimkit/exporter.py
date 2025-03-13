@@ -111,7 +111,7 @@ class Exporter:
                 input_names=["images", "orig_target_sizes"],
                 output_names=["labels", "boxes", "scores"],
                 dynamic_axes=dynamic_axes,
-                opset_version=16,
+                opset_version=20,
                 do_constant_folding=True,
             )
 

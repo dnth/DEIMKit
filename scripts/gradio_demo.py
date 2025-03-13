@@ -54,14 +54,16 @@ def draw(images, labels, boxes, scores, ratios, paddings, thrh=0.4, class_names=
     for i, im in enumerate(images):
         draw = ImageDraw.Draw(im)
         scr = scores[i]
-        lab = labels[i][scr > thrh]
-        box = boxes[i][scr > thrh]
-        scr = scr[scr > thrh]
+        
+        # Get indices of scores above threshold
+        valid_indices = np.where(scr > thrh)[0]
+        
+        # Filter using these indices
+        valid_labels = labels[i][valid_indices]
+        valid_boxes = boxes[i][valid_indices]
+        valid_scores = scr[valid_indices]
 
-        ratio = ratios[i]
-        pad_w, pad_h = paddings[i]
-
-        for lbl, bb in zip(lab, box):
+        for j, (lbl, bb, score) in enumerate(zip(valid_labels, valid_boxes, valid_scores)):
             # Get color for this class
             class_idx = int(lbl)
             color = colors[class_idx % len(colors)]
@@ -69,6 +71,9 @@ def draw(images, labels, boxes, scores, ratios, paddings, thrh=0.4, class_names=
             # Convert RGB to hex for PIL
             hex_color = "#{:02x}{:02x}{:02x}".format(*color)
 
+            ratio = ratios[i]
+            pad_w, pad_h = paddings[i]
+            
             # Adjust bounding boxes according to the resizing and padding
             bb = [
                 (bb[0] - pad_w) / ratio,
@@ -82,9 +87,9 @@ def draw(images, labels, boxes, scores, ratios, paddings, thrh=0.4, class_names=
 
             # Use class name if available, otherwise use class index
             if class_names and class_idx < len(class_names):
-                label_text = f"{class_names[class_idx]} {scr[lab == lbl][0]:.2f}"
+                label_text = f"{class_names[class_idx]} {score:.2f}"
             else:
-                label_text = f"Class {class_idx} {scr[lab == lbl][0]:.2f}"
+                label_text = f"Class {class_idx} {score:.2f}"
 
             # Draw text background
             text_size = draw.textbbox((0, 0), label_text, font=None)
@@ -388,23 +393,23 @@ def build_interface(model_path, class_names_path, example_images=None):
     Returns:
         gr.Blocks: The Gradio demo interface
     """
-    with gr.Blocks(title="Blood Cell Detection") as demo:
-        gr.Markdown("# Blood Cell Detection")
-        gr.Markdown("Upload an image to detect blood cells. The model can detect 3 types of blood cells: red blood cells, white blood cells and platelets.")
-        gr.Markdown("Model is trained using DEIM-D-FINE model N.")
+    with gr.Blocks(title="DEIMKit Detection") as demo:
+        gr.Markdown("# DEIMKit Detection")
+        gr.Markdown("Configure the model and run inference on an image.")
         
         # Add model selection
-        with gr.Accordion("Model Settings", open=False):
-            custom_model_path = gr.File(
-                label="Custom Model File (ONNX)",
-                file_types=[".onnx"],
-                file_count="single"
-            )
-            custom_classes_path = gr.File(
-                label="Custom Classes File (TXT)",
-                file_types=[".txt"],
-                file_count="single"
-            )
+        with gr.Accordion("Model Settings", open=True):
+            with gr.Row():
+                custom_model_path = gr.File(
+                    label="Custom Model File (ONNX)",
+                    file_types=[".onnx"],
+                    file_count="single"
+                )
+                custom_classes_path = gr.File(
+                    label="Custom Classes File (TXT)",
+                    file_types=[".txt"],
+                    file_count="single"
+                )
 
         with gr.Row():
             with gr.Column():
@@ -413,10 +418,10 @@ def build_interface(model_path, class_names_path, example_images=None):
                     minimum=0.1,
                     maximum=1.0,
                     value=0.4,
-                    step=0.05,
+                    step=0.01,
                     label="Confidence Threshold",
                 )
-                submit_btn = gr.Button("Count Cells!", variant="primary")
+                submit_btn = gr.Button("Run Inference", variant="primary")
 
             with gr.Column():
                 output_image = gr.Image(type="pil", label="Detection Result")
