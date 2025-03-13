@@ -55,11 +55,11 @@ def get_default_val_transforms(image_size: List[int]) -> List[Dict[str, Any]]:
 
 def configure_dataset(
     config: Config,
-    image_size: List[int],
     train_ann_file: str,
     train_img_folder: str,
     val_ann_file: str,
     val_img_folder: str,
+    image_size: List[int] = [640, 640],
     train_batch_size: int = 16,
     val_batch_size: int = 16,
     num_classes: int = None,
