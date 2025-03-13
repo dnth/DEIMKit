@@ -193,10 +193,12 @@ output_path = exporter.to_onnx(
 ```
 
 ### Gradio App
+Run a Gradio app to interact with your model.
 
 ```bash
 python scripts/gradio_demo.py
 ```
+![alt text](assets/gradio_demo.png)
 
 ### Live Inference
 Run live inference on a video, image or webcam using ONNXRuntime.
@@ -235,7 +237,6 @@ python scripts/live_inference.py
     --input-size 320            # Input size for the model
 ```
 
-![alt text](assets/gradio_demo.png)
 
 ## Disclaimer
 I'm not affiliated with the original DEIM authors. I just found the model interesting and wanted to try it out. The changes made here are of my own. Please cite and star the original repo if you find this useful.
