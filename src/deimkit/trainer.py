@@ -185,7 +185,7 @@ class Trainer:
         warmup_iter: int | None = None,
         ema_warmups: int | None = None,
         lr: float | None = None,
-        stop_epoch: int = 1000000000,
+        stop_epoch: int | None = None,
         mixup_epochs: list[int] | None = None,
     ):
         """
@@ -224,11 +224,6 @@ class Trainer:
             for param_group in self.optimizer.param_groups:
                 param_group["lr"] = lr
 
-        # Set the stop epoch
-        self.config.yaml_cfg["train_dataloader"]["collate_fn"]["stop_epoch"] = (
-            stop_epoch
-        )
-
         # Get training parameters
         num_epochs = self.config.get("epoches", 50)
         clip_max_norm = self.config.get("clip_max_norm", 0.1)
@@ -258,11 +253,19 @@ class Trainer:
                 f"Automatically calculated data augmentation epochs: {data_aug_1}, {data_aug_2}, {data_aug_3}"
             )
 
+        if stop_epoch is None:
+            stop_epoch = int(num_epochs * 0.9)
+            self.config.yaml_cfg["train_dataloader"]["collate_fn"]["stop_epoch"] = (
+                stop_epoch
+            )
+            logger.info(f"Automatically calculated stop epoch: {stop_epoch}")
+
         if no_aug_epoch is None:
             no_aug_epoch = max(
                 1, int(num_epochs * 0.13)
             )  # No augmentation epochs of 13% from total epochs
             self.config.no_aug_epoch = no_aug_epoch
+            self.config.yaml_cfg["no_aug_epoch"] = no_aug_epoch
             logger.info(
                 f"Automatically calculated no augmentation epochs: {no_aug_epoch}"
             )
@@ -296,25 +299,29 @@ class Trainer:
 
             # Scale warmup iterations based on total epochs (approximately 5% of total iterations)
             warmup_iter = int(iter_per_epoch * num_epochs * 0.05)
-            
+
             # Ensure a minimum value of 1 epoch worth of iterations
             min_warmup_iter = int(iter_per_epoch)
             warmup_iter = max(warmup_iter, min_warmup_iter)
 
             # Set warmup_iter to that
             self.config.warmup_iter = warmup_iter
-            logger.info(f"Automatically calculated warmup iterations: {warmup_iter} ({warmup_iter/iter_per_epoch:.1f} epochs)")
+            logger.info(
+                f"Automatically calculated warmup iterations: {warmup_iter} ({warmup_iter / iter_per_epoch:.1f} epochs)"
+            )
 
         if ema_warmups is None:
-            # Scale EMA warmups based on total epochs (approximately 8% of total iterations)
+            # Scale EMA warmups based on total epochs (approximately 5% of total iterations)
             ema_warmups = int(iter_per_epoch * num_epochs * 0.05)
-            
+
             # Ensure a minimum value of 1 epoch worth of iterations
             min_ema_warmups = int(iter_per_epoch)
             ema_warmups = max(ema_warmups, min_ema_warmups)
-            
+
             self.config.ema_warmups = ema_warmups
-            logger.info(f"Automatically calculated EMA warmups: {ema_warmups} ({ema_warmups/iter_per_epoch:.1f} epochs)")
+            logger.info(
+                f"Automatically calculated EMA warmups: {ema_warmups} ({ema_warmups / iter_per_epoch:.1f} epochs)"
+            )
 
         self._setup()  # Sends all configs to the solver
 
@@ -427,7 +434,9 @@ class Trainer:
                                 epoch, eval_stats, self.output_dir / "best.pth"
                             )
                             # Add a prominent message for new best model
-                            logger.info(f"🏆 NEW BEST MODEL! Epoch {epoch} / mAP: {best_stats[k]}")
+                            logger.info(
+                                f"🏆 NEW BEST MODEL! Epoch {epoch} / mAP: {best_stats[k]}"
+                            )
                 elif k != "coco_eval_bbox":
                     # Handle other metrics
                     if k in best_stats:
@@ -445,7 +454,9 @@ class Trainer:
                                 epoch, eval_stats, self.output_dir / "best.pth"
                             )
                             # Add a prominent message for new best model
-                            logger.info(f"🏆 NEW BEST MODEL! Epoch {epoch} / mAP: {best_stats[k]}")
+                            logger.info(
+                                f"🏆 NEW BEST MODEL! Epoch {epoch} / mAP: {best_stats[k]}"
+                            )
 
             # Get mAP value safely from eval_stats
             # The first value in coco_eval_bbox is the AP@IoU=0.5:0.95 (primary metric)
