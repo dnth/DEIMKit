@@ -213,7 +213,7 @@ python scripts/live_inference.py
     --input-size 320            # Input size for the model
 ```
 
-
+The following is a demo of video inference after training for about 50 epochs on the vehicles dataset with image size 320x320.
 
 https://github.com/user-attachments/assets/5066768f-c97e-4999-af81-ffd29d88f529
 
@@ -226,7 +226,7 @@ You can also run live inference on a webcam by setting the `webcam` flag.
 python scripts/live_inference.py 
     --onnx model.onnx           # Path to the ONNX model file
     --webcam                    # Use webcam as input source
-    --class-names classes.txt   # Path to the classes file
+    --class-names classes.txt   # Path to the classes file. Each class name should be on a new line.
     --input-size 320            # Input size for the model
 ```
 
@@ -235,7 +235,7 @@ For image inference, specify the path to the image file as the input.
 python scripts/live_inference.py 
     --onnx model.onnx           # Path to the ONNX model file
     --input image.jpg           # Path to the input image file
-    --class-names classes.txt   # Path to the classes file
+    --class-names classes.txt   # Path to the classes file. Each class name should be on a new line.
     --input-size 320            # Input size for the model
 ```
 
