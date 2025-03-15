@@ -4,7 +4,7 @@
 
 
 <div align="center">
-<img src="assets/logo.png" alt="DEIMKit Logo" width="600">
+<img src="assets/logo.png" alt="DEIMKit Logo" width="650">
 
 <p>DEIMKit is a Python package that provides a wrapper for <a href="https://github.com/ShihuaHuang95/DEIM">DEIM: DETR with Improved Matching for Fast Convergence</a>. Check out the original repo for more details.</p>
 </div>
