@@ -293,6 +293,23 @@ To train on your custom dataset, you need to organize it in the COCO format. Fol
     -r outputs/deim_hgnetv2_s_wholebody28/last.pth \
     --use-amp --seed=0 &> log.txt 2>&1 &
 
+    ####################################################### N
+    CUDA_VISIBLE_DEVICES=0 torchrun \
+    --master_port=7777 \
+    --nproc_per_node=1 \
+    train.py \
+    -c configs/deim_dfine/deim_hgnetv2_n_wholebody28.yml \
+    --use-amp \
+    --seed=0 &> log.txt 2>&1 &
+    
+    CUDA_VISIBLE_DEVICES=0 torchrun \
+    --master_port=7777 \
+    --nproc_per_node=1 \
+    train.py \
+    -c configs/deim_dfine/deim_hgnetv2_n_wholebody28.yml \
+    -r outputs/deim_hgnetv2_n_wholebody28/last.pth \
+    --use-amp --seed=0 &> log.txt 2>&1 &
+
     #######################################################
     tail -n 20 -f log.txt
     
@@ -320,6 +337,15 @@ To train on your custom dataset, you need to organize it in the COCO format. Fol
     -c configs/deim_dfine/deim_hgnetv2_s_wholebody28.yml \
     --test-only \
     -r outputs/deim_hgnetv2_s_wholebody28/best_stg2.pth
+
+    ####################################################### N
+    CUDA_VISIBLE_DEVICES=0 torchrun \
+    --master_port=7777 \
+    --nproc_per_node=1 \
+    train.py \
+    -c configs/deim_dfine/deim_hgnetv2_n_wholebody28.yml \
+    --test-only \
+    -r outputs/deim_hgnetv2_n_wholebody28/best_stg2.pth
     ```
 
 <!-- <summary>3. Tuning </summary> -->
@@ -362,6 +388,22 @@ To train on your custom dataset, you need to organize it in the COCO format. Fol
     -r outputs/deim_hgnetv2_s_wholebody28_ft/last.pth \
     --use-amp --seed=0 &> log.txt 2>&1 &
 
+    ####################################################### N
+    CUDA_VISIBLE_DEVICES=0 torchrun \
+    --master_port=7777 \
+    --nproc_per_node=1 \
+    train.py \
+    -c configs/deim_dfine/deim_hgnetv2_n_wholebody28_ft.yml \
+    --use-amp \
+    --seed=0 \
+    -t outputs/deim_hgnetv2_n_wholebody28/best_stg2.pth &> log.txt 2>&1 &
+    
+    CUDA_VISIBLE_DEVICES=0 torchrun \
+    --master_port=7777 \
+    --nproc_per_node=1 train.py \
+    -c configs/deim_dfine/deim_hgnetv2_n_wholebody28_ft.yml \
+    -r outputs/deim_hgnetv2_n_wholebody28_ft/last.pth \
+    --use-amp --seed=0 &> log.txt 2>&1 &
     #######################################################
     tail -n 20 -f log.txt
     
