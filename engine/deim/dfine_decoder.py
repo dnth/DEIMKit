@@ -694,7 +694,7 @@ class DFINETransformer(nn.Module):
         topk_ind: torch.Tensor
 
         n = topk_ind.shape[0]
-        outputs_anchors_unact = outputs_anchors_unact * torch.ones([n, 1, 1])
+        outputs_anchors_unact = outputs_anchors_unact * torch.ones([n, 1, 1], device=outputs_anchors_unact.device)
         topk_anchors = outputs_anchors_unact.gather(dim=1, index=topk_ind.unsqueeze(-1).repeat(1, 1, outputs_anchors_unact.shape[-1]))
         topk_logits = outputs_logits.gather(dim=1, index=topk_ind.unsqueeze(-1).repeat(1, 1, outputs_logits.shape[-1])) if self.training else None
         topk_memory = memory.gather(dim=1, index=topk_ind.unsqueeze(-1).repeat(1, 1, memory.shape[-1]))
