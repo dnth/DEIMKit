@@ -413,7 +413,7 @@ To train on your custom dataset, you need to organize it in the COCO format. Fol
     #######################################################
     tail -n 20 -f log.txt
     
-    ps aux | grep /usr/bin/torchrun
+    ps aux | grep torchrun
     kill xxxxx
     ```
 </details>
