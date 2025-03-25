@@ -256,12 +256,6 @@ To train on your custom dataset, you need to organize it in the COCO format. Fol
     ```shell
     pip install -r requirements.txt
 
-    pip install \
-    torch==2.5.1 \
-    torchvision==0.20.1 \
-    torchaudio==2.5.1 \
-    --index-url https://download.pytorch.org/whl/cu124
-
     rm -rf tools/dataset/wholebody28
     mv tools/dataset/wholebody28_1 tools/dataset/wholebody28
 
@@ -319,7 +313,7 @@ To train on your custom dataset, you need to organize it in the COCO format. Fol
     #######################################################
     tail -n 20 -f log.txt
     
-    ps aux | grep /usr/bin/torchrun
+    ps aux | grep torchrun
     kill xxxxx
     ```
 
@@ -359,7 +353,10 @@ To train on your custom dataset, you need to organize it in the COCO format. Fol
     ```shell
     rm -rf tools/dataset/wholebody28
     mv tools/dataset/wholebody28_2 tools/dataset/wholebody28
-
+    ```
+    Uncomment.
+    https://github.com/PINTO0309/DEIM/blob/c4029e6e569f13f5bb7d7c7a5f8c3b640706aa9a/engine/solver/det_solver.py#L157-L159
+    ```
     ####################################################### X
     CUDA_VISIBLE_DEVICES=0 torchrun \
     --master_port=7777 \
@@ -399,21 +396,21 @@ To train on your custom dataset, you need to organize it in the COCO format. Fol
     --master_port=7777 \
     --nproc_per_node=1 \
     train.py \
-    -c configs/deim_dfine/deim_hgnetv2_n_wholebody28_ft.yml \
+    -c configs/deim_dfine/deim_hgnetv2_n_wholebody28.yml \
     --use-amp \
     --seed=0 \
-    -t outputs/deim_hgnetv2_n_wholebody28/best_stg2.pth &> log.txt 2>&1 &
+    -t outputs/deim_hgnetv2_n_wholebody28_1/best_stg2.pth &> log.txt 2>&1 &
     
     CUDA_VISIBLE_DEVICES=0 torchrun \
     --master_port=7777 \
     --nproc_per_node=1 train.py \
-    -c configs/deim_dfine/deim_hgnetv2_n_wholebody28_ft.yml \
-    -r outputs/deim_hgnetv2_n_wholebody28_ft/last.pth \
+    -c configs/deim_dfine/deim_hgnetv2_n_wholebody28.yml \
+    -r outputs/deim_hgnetv2_n_wholebody28/last.pth \
     --use-amp --seed=0 &> log.txt 2>&1 &
     #######################################################
     tail -n 20 -f log.txt
     
-    ps aux | grep /usr/bin/torchrun
+    ps aux | grep torchrun
     kill xxxxx
     ```
 </details>
