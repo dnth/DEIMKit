@@ -359,7 +359,10 @@ To train on your custom dataset, you need to organize it in the COCO format. Fol
     ```shell
     rm -rf tools/dataset/wholebody28
     mv tools/dataset/wholebody28_2 tools/dataset/wholebody28
-
+    ```
+    Uncomment.
+    https://github.com/PINTO0309/DEIM/blob/c4029e6e569f13f5bb7d7c7a5f8c3b640706aa9a/engine/solver/det_solver.py#L157-L159
+    ```
     ####################################################### X
     CUDA_VISIBLE_DEVICES=0 torchrun \
     --master_port=7777 \
