@@ -159,6 +159,18 @@ class Trainer:
         self.config.sync_bn = False
         self.config.find_unused_parameters = False
 
+        # Properly set the device in config
+        self.config.device = str(self.device)  # This will set the top-level device parameter
+        # write to yaml_cfg
+        self.config.yaml_cfg["device"] = str(self.device)
+        logger.info(f"Set device in config: {self.device}")
+
+        # Disable multiprocessing for CPU training
+        if self.device.type == 'cpu':
+            logger.info("Running on CPU - setting num_workers=0 for DataLoader")
+            self.config.yaml_cfg["train_dataloader"]["num_workers"] = 0
+            self.config.yaml_cfg["val_dataloader"]["num_workers"] = 0
+
         # Initialize the solver based on the task
         task = self.config.get("yaml_cfg.task", "detection")
         logger.info(f"Initializing solver for task: {task}")
@@ -355,6 +367,10 @@ class Trainer:
             )
 
         self._setup()  # Sends all configs to the solver
+
+        # Add device information to config
+        self.config.yaml_cfg["device"] = str(self.device)
+        logger.info(f"Using device: {self.device}")
 
         best_stats = {"epoch": -1}
         top1 = 0

@@ -30,7 +30,7 @@ conf = Config.from_model_name("deim_hgnetv2_n")
 
 conf = configure_dataset(
     config=conf,
-    image_size=(640, 640),
+    image_size=(320, 320),
     train_ann_file="./data/coco8-converted/train_coco.json",
     train_img_folder="./data/coco8-converted",
     val_ann_file="./data/coco8-converted/val_coco.json",
