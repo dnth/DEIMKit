@@ -4,7 +4,10 @@ checkpoint_freq: 12
 
 
 sync_bn: True
-find_unused_parameters: False
+# Changes to avoid RuntimeError
+#   RuntimeError: Expected to have finished reduction in the prior iteration before starting a new one.
+#   False -> True
+find_unused_parameters: True
 
 
 use_amp: False
