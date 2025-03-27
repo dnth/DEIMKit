@@ -528,6 +528,27 @@ If you'd like to train **DEIM** on COCO2017 with an input size of 320x320, follo
     trtexec --onnx="model.onnx" --saveEngine="model.engine" --fp16
     ```
 
+6. Export TensorFlow.js
+    ```shell
+    pip install \
+    onnx2tf \
+    tensorflow \
+    tensorflowjs \
+    onnx \
+    onnxruntime \
+    simple_onnx_processing_tools \
+    onnxsim==0.4.33
+
+    onnx2tf -i deim_hgnetv2_n_wholebody28_1250query.onnx
+
+    tensorflowjs_converter \
+    --input_format tf_saved_model \
+    --output_format tfjs_graph_model \
+    --weight_shard_size_bytes 1048576000 \
+    saved_model \
+    tfjs_model
+    ```
+
 </details>
 
 <details>
