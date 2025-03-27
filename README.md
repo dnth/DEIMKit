@@ -247,6 +247,10 @@ python scripts/live_inference.py
     --class-names classes.txt   # Path to the classes file. Each class name should be on a new line.
     --input-size 320            # Input size for the model
 ```
+The following is a demo of webcam inference after training on the rock paper scissors dataset 640x640 resolution image.
+
+https://github.com/user-attachments/assets/6e5dbb15-4e3a-45a3-997e-157bb9370146
+
 
 For image inference, specify the path to the image file as the input.
 ```bash
