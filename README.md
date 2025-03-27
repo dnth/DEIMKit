@@ -552,6 +552,8 @@ If you'd like to train **DEIM** on COCO2017 with an input size of 320x320, follo
     ```
     Access to `http://localhost:8000/index_tfjs.html`
 
+    ![image](https://github.com/user-attachments/assets/566792df-16c8-4efa-9383-2a3e5acc2a87)
+
 </details>
 
 <details>
