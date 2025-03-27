@@ -30,6 +30,7 @@ platforms = ["linux-64", "win-64", "osx-arm64"]
 [tool.pixi.dependencies]
 ipywidgets = ">=8.1.5,<9"
 ipykernel = ">=6.29.5,<7"
+cmake = ">=3.31.6,<4"
 
 [tool.pixi.pypi-dependencies]
 deimkit = { path = ".", editable = true }
