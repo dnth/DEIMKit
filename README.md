@@ -280,6 +280,14 @@ Run a quickstart
 pixi run quickstart
 ```
 
+Smoke test the package
+```bash
+pixi run -e cpu quickstart
+```
+```bash
+pixi run -e cuda quickstart
+```
+
 Train a model
 ```bash
 pixi run -e cuda train-model
@@ -311,6 +319,8 @@ Export model to ONNX
 ```bash
 pixi run export --config config.yml --checkpoint model.pth --output model.onnx
 ```
+
+
 
 ## Disclaimer
 I'm not affiliated with the original DEIM authors. I just found the model interesting and wanted to try it out. The changes made here are of my own. Please cite and star the original repo if you find this useful.
