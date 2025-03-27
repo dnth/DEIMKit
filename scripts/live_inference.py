@@ -161,6 +161,10 @@ def process_video(sess, video_path, class_names=None, input_size=640):
     curr_time = 0
     fps_display = 0
     
+    # Add provider display flag and get actual provider name
+    show_provider = True
+    provider = sess.get_providers()[0]  # Get the first active provider
+
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
@@ -222,6 +226,23 @@ def process_video(sess, video_path, class_names=None, input_size=640):
         cv2.putText(display_frame, fps_text, (text_x, text_y), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
+        # Add provider text at the bottom center when show_provider is True
+        if show_provider:
+            provider_text = f"Provider: {provider}"
+            text_size = cv2.getTextSize(provider_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+            text_x = (display_frame.shape[1] - text_size[0]) // 2
+            text_y = display_frame.shape[0] - 20
+            
+            # Draw background rectangle
+            cv2.rectangle(display_frame, 
+                         (text_x - 5, text_y - text_size[1] - 5), 
+                         (text_x + text_size[0] + 5, text_y + 5), 
+                         (139, 0, 0), -1)  # Dark blue background
+            
+            # Draw text in white
+            cv2.putText(display_frame, provider_text, (text_x, text_y), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
         # Display the frame in a clean window
         cv2.imshow(window_name, display_frame)
         
@@ -231,10 +252,13 @@ def process_video(sess, video_path, class_names=None, input_size=640):
         # Update progress bar
         progress_bar.update(1)
         
-        # Break if 'q' is pressed
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        # Toggle provider display on 'p' key press
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
             print("\nProcessing interrupted by user")
             break
+        elif key == ord('p'):
+            show_provider = not show_provider
 
     progress_bar.close()
     cap.release()
@@ -257,6 +281,10 @@ def process_webcam(sess, device_id=0, class_names=None, input_size=640):
     curr_time = 0
     fps = 0
     
+    
+    show_provider = True
+    provider = sess.get_providers()[0]  
+
     while True:
         # Calculate FPS
         curr_time = time.time()
@@ -318,13 +346,33 @@ def process_webcam(sess, device_id=0, class_names=None, input_size=640):
         # Draw text in white
         cv2.putText(display_frame, fps_text, (text_x, text_y), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-        
+
+        # Add provider text at the bottom center when show_provider is True
+        if show_provider:
+            provider_text = f"ONNX Runtime EP: {provider}"
+            text_size = cv2.getTextSize(provider_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+            text_x = (display_frame.shape[1] - text_size[0]) // 2
+            text_y = display_frame.shape[0] - 20
+            
+            # Draw background rectangle
+            cv2.rectangle(display_frame, 
+                         (text_x - 5, text_y - text_size[1] - 5), 
+                         (text_x + text_size[0] + 5, text_y + 5), 
+                         (0, 0, 255), -1)  # Red background
+            
+            # Draw text in white
+            cv2.putText(display_frame, provider_text, (text_x, text_y), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
         # Display the frame
         cv2.imshow('Webcam Detection', display_frame)
         
-        # Break the loop if 'q' is pressed
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        # Toggle provider display on 'p' key press
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
             break
+        elif key == ord('p'):
+            show_provider = not show_provider
     
     # Release resources
     cap.release()
