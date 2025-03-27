@@ -1,8 +1,3 @@
-"""
-Copyright (c) 2024 The D-FINE Authors. All Rights Reserved.
-"""
-
-import torch
 import numpy as np
 import onnxruntime as ort
 from PIL import Image, ImageDraw
