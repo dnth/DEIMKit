@@ -2,56 +2,103 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>TensorFlow.js 推論テスト</title>
+  <title>TensorFlow.js Inference Test</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
 </head>
 <body>
-  <h1>TensorFlow.js モデル推論テスト</h1>
-  <button onclick="runInference()">推論を実行</button>
-
+  <h1>Draw bounding boxes using image</h1>
+  <input type="file" id="imageInput" accept="image/*" />
+  <button onclick="runInference()">Run inference</button>
+  <br><br>
+  <canvas id="canvas" width="640" height="640" style="border:1px solid black;"></canvas>
   <pre id="output"></pre>
 
   <script>
+    const classColors = [
+      '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231',
+      '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe',
+      '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000',
+      '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080',
+      '#ffffff', '#000000', '#ff4500', '#2e8b57', '#00ced1',
+      '#ff69b4', '#8a2be2', '#deb887'
+    ];
+    let imageElement = new Image();
+    let canvas = document.getElementById('canvas');
+    let ctx = canvas.getContext('2d');
+    let model;
+
+    // 画像ファイルが選択された時
+    document.getElementById('imageInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        imageElement.onload = () => {
+          // 画像をキャンバスにリサイズして描画
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+        };
+        imageElement.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
     async function runInference() {
-      const modelPath = './tfjs_model/model.json'; // モデルのパスを指定
+      if (!model) {
+        model = await tf.loadGraphModel('./tfjs_model/model.json');
+      }
 
-      // モデルのロード
-      const model = await tf.loadGraphModel(modelPath);
+      // 画像を tf.Tensor に変換
+      const inputTensor = tf.tidy(() => {
+        const imageTensor = tf.browser.fromPixels(canvas);
+        const resized = tf.image.resizeBilinear(imageTensor, [640, 640]);
+        const expanded = resized.expandDims(0);  // [1,640,640,3]
+        return expanded.toFloat().div(255.0);
+      });
 
-      // ダミー入力データを作成 (全てゼロ埋め)
-      const input = tf.ones([1, 640, 640 ,3], 'float32');
-
-      // 入力テンソルのマップ
-      const inputMap = {'images': input};
+      const inputMap = { 'images': inputTensor };
 
       // ウォームアップ
-      let outputTensors = model.execute(inputMap, ['Identity']);
-
-      // 推論時間測定
+      model.execute(inputMap, ['Identity']);
+      // 推論
       const start = performance.now();
-      outputTensors = model.execute(inputMap, ['Identity']);
+      const outputTensor = model.execute(inputMap, ['Identity']);
       const end = performance.now();
       const inferenceTime = end - start;
 
-      // 結果取得（配列でなく単一Tensorの可能性あり）
-      let outputArray;
-      if (Array.isArray(outputTensors)) {
-        outputArray = await Promise.all(outputTensors.map(t => t.array()));
-      } else {
-        outputArray = [await outputTensors.array()];
-        outputTensors = [outputTensors];  // 一貫性のため配列化
+      const output = await outputTensor.array(); // [1,1250,6]
+      const results = output[0];
+
+      // 描画処理
+      ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth = 2;
+      ctx.font = '16px sans-serif';
+      ctx.fillStyle = 'red';
+
+      for (const detection of results) {
+        const [label, x1, y1, x2, y2, score] = detection;
+        if (score < 0.35) continue;  // 信頼度でフィルタリング
+
+        // 元画像サイズにスケーリング
+        const boxX1 = x1 * canvas.width;
+        const boxY1 = y1 * canvas.height;
+        const boxX2 = x2 * canvas.width;
+        const boxY2 = y2 * canvas.height;
+        const width = boxX2 - boxX1;
+        const height = boxY2 - boxY1;
+
+        ctx.strokeRect(boxX1, boxY1, width, height);
+        const color = classColors[Math.floor(label) % classColors.length];
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.fillText(`${label}, Score: ${score.toFixed(2)}`, boxX1, boxY1 - 4);
       }
 
-      // 結果表示
-      const backEnd = tf.getBackend();
-      document.getElementById('output').textContent = JSON.stringify({
-        backEnd,
-        inferenceTimeStr: `推論時間: ${inferenceTime.toFixed(2)} ms`,
-        Identity: outputArray[0],
-      }, null, 2);
+      document.getElementById('output').textContent = `Backend: ${tf.getBackend()}, InferenceTime: ${inferenceTime.toFixed(2)} ms`;
 
-      // メモリ解放
-      tf.dispose([input, ...outputTensors]);
+      tf.dispose([inputTensor, outputTensor]);
     }
   </script>
 </body>
