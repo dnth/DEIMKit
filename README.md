@@ -547,7 +547,10 @@ If you'd like to train **DEIM** on COCO2017 with an input size of 320x320, follo
     --weight_shard_size_bytes 1048576000 \
     saved_model \
     tfjs_model
+
+    python -m http.server
     ```
+    Access to `http://localhost:8000/index_tfjs.html`
 
 </details>
 
