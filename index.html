@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ONNX WebGL ベンチマーク</title>
+</head>
+<body>
+    <h2>ONNX WebGL ベンチマーク</h2>
+    <button onclick="runBenchmark()">ベンチマーク開始</button>
+    <p id="status">準備完了</p>
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.all.js"></script>
+    <script>
+        async function runBenchmark() {
+            const modelPath = "./deim_hgnetv2_s_wholebody28_ft_1250query_fixed_int32.onnx"; // モデルのパス
+            const sessionOptions = { executionProviders: ['webgl'] };
+
+            document.getElementById("status").innerText = "モデルをロード中...";
+
+            const loadStart = performance.now();
+            const session = await ort.InferenceSession.create(modelPath, sessionOptions);
+            const loadEnd = performance.now();
+            document.getElementById("status").innerText = `モデルロード時間: ${(loadEnd - loadStart).toFixed(2)} ms`;
+
+            // ダミー入力データ作成 (モデルの入力形状に合わせる必要あり)
+            const inputTensor = new ort.Tensor("float32", new Float32Array(1 * 3 * 640 * 640), [1, 3, 640, 640]);
+
+            document.getElementById("status").innerText = "推論を実行中...";
+
+            const inferStart = performance.now();
+            const output = await session.run({ input_bgr: inputTensor });
+            const inferEnd = performance.now();
+
+            document.getElementById("status").innerText = `推論時間: ${(inferEnd - inferStart).toFixed(2)} ms`;
+            console.log(output);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>TensorFlow.js 推論テスト</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
+</head>
+<body>
+  <h1>TensorFlow.js モデル推論テスト</h1>
+  <button onclick="runInference()">推論を実行</button>
+
+  <pre id="output"></pre>
+
+  <script>
+    async function runInference() {
+      const modelPath = './tfjs_model/model.json'; // モデルのパスを指定
+
+      // モデルのロード
+      const model = await tf.loadGraphModel(modelPath);
+
+      // ダミー入力データを作成 (全てゼロ埋め)
+      const input = tf.ones([1, 640, 640 ,3], 'float32');
+
+      // 入力テンソルのマップ
+      const inputMap = {'images': input};
+
+      // ウォームアップ
+      let outputTensors = model.execute(inputMap, ['Identity']);
+
+      // 推論時間測定
+      const start = performance.now();
+      outputTensors = model.execute(inputMap, ['Identity']);
+      const end = performance.now();
+      const inferenceTime = end - start;
+
+      // 結果取得（配列でなく単一Tensorの可能性あり）
+      let outputArray;
+      if (Array.isArray(outputTensors)) {
+        outputArray = await Promise.all(outputTensors.map(t => t.array()));
+      } else {
+        outputArray = [await outputTensors.array()];
+        outputTensors = [outputTensors];  // 一貫性のため配列化
+      }
+
+      // 結果表示
+      const backEnd = tf.getBackend();
+      document.getElementById('output').textContent = JSON.stringify({
+        backEnd,
+        inferenceTimeStr: `推論時間: ${inferenceTime.toFixed(2)} ms`,
+        Identity: outputArray[0],
+      }, null, 2);
+
+      // メモリ解放
+      tf.dispose([input, ...outputTensors]);
+    }
+  </script>
+</body>
+</html>

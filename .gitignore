@@ -135,6 +135,8 @@ dmypy.json
 *.onnx
 *.zip
 *.html
+!index.html
+!index_tfjs.html
 .DS_Store
 
 deim_hgnetv2_x_wholebody28_300query/
@@ -145,6 +147,8 @@ tools/dataset/wholebody28_2/
 outputs/
 output/
 output_*/
+saved_model/
+tfjs_model/
 
 images/
 images_partial/
