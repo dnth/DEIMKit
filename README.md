@@ -306,6 +306,14 @@ Run live inference
 pixi run -e cuda live-inference --onnx model.onnx --webcam --class-names classes.txt --input-size 640
 ```
 
+> [!TIP]
+> If you want to use TensorRT for inference, you may need to set the `LD_LIBRARY_PATH` environment variable to include the TensorRT libraries.
+>
+> For example
+> ```bash
+> export LD_LIBRARY_PATH="/home/dnth/Desktop/DEIMKit/.pixi/envs/cuda/lib/python3.11/site-packages/tensorrt_libs:$LD_LIBRARY_PATH"
+> ```
+
 ```bash
 pixi run -e cpu live-inference --onnx model.onnx --input video.mp4 --class-names classes.txt --input-size 320
 ```

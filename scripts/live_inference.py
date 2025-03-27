@@ -10,6 +10,7 @@ import cv2
 import time
 import colorsys
 from tqdm import tqdm
+import os
 
 
 def resize_with_aspect_ratio(image, size, interpolation=Image.BILINEAR):
@@ -382,8 +383,26 @@ def process_webcam(sess, device_id=0, class_names=None, input_size=640):
 
 def main(args):
     """Main function."""
-    # Set up ONNX runtime session with specified providers
-    providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+    # Set up providers with TensorRT as primary, followed by CUDA and CPU
+    providers = [
+        (
+            "TensorrtExecutionProvider",
+            {
+                "device_id": 0,
+                "trt_max_workspace_size": 8589934592,
+                "trt_fp16_enable": True,
+                "trt_engine_cache_enable": True,
+                "trt_engine_cache_path": "./trt_cache",
+                "trt_force_sequential_engine_build": False,
+                "trt_max_partition_iterations": 10000,
+                "trt_min_subgraph_size": 1,
+                "trt_builder_optimization_level": 5,
+                "trt_timing_cache_enable": True,
+            },
+        ),
+        'CUDAExecutionProvider',
+        'CPUExecutionProvider'
+    ]
     
     # Load the ONNX model with specified providers
     try:
@@ -400,13 +419,25 @@ def main(args):
             elif args.optimization_level == 99:
                 sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         
+        # Create TensorRT cache directory if it doesn't exist
+        os.makedirs("./trt_cache", exist_ok=True)
+        
         sess = ort.InferenceSession(args.onnx, sess_options=sess_options, providers=providers)
         print(f"Using device: {ort.get_device()}")
+        print(f"Active provider: {sess.get_providers()[0]}")
     except Exception as e:
         print(f"Error creating inference session with providers {providers}: {e}")
-        print("Attempting to fall back to CPU execution...")
-        sess = ort.InferenceSession(args.onnx, providers=['CPUExecutionProvider'])
-        print(f"Using device: {ort.get_device()}")
+        print("Attempting to fall back to CUDA/CPU execution...")
+        # Try CUDA, then fall back to CPU if needed
+        for fallback_providers in [['CUDAExecutionProvider'], ['CPUExecutionProvider']]:
+            try:
+                sess = ort.InferenceSession(args.onnx, providers=fallback_providers)
+                print(f"Successfully fell back to: {fallback_providers[0]}")
+                print(f"Using device: {ort.get_device()}")
+                break
+            except Exception as e:
+                print(f"Error with {fallback_providers[0]}: {e}")
+                continue
     
     # Load class names if provided
     class_names = None

@@ -42,6 +42,10 @@ platforms = ["linux-64", "win-64"]
 torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cu124" }
 torchvision = { version = ">=0.20.1", index = "https://download.pytorch.org/whl/cu124" }
 onnxruntime-gpu = ">=1.19.2"
+tensorrt = ">=10.1.0"
+tensorrt-cu12 = ">=10.1.0"
+tensorrt-cu12-bindings = ">=10.1.0"
+tensorrt-cu12-libs = ">=10.1.0"
 
 [tool.pixi.feature.cpu.pypi-dependencies]
 torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cpu" }
