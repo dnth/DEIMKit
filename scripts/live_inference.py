@@ -1,3 +1,7 @@
+"""
+Standalone script for live inference using ONNX Runtime.
+"""
+
 import numpy as np
 import onnxruntime as ort
 from PIL import Image, ImageDraw
@@ -5,7 +9,6 @@ import cv2
 import time
 import colorsys
 from tqdm import tqdm
-import os
 
 
 def resize_with_aspect_ratio(image, size, interpolation=Image.BILINEAR):
@@ -310,7 +313,7 @@ def process_webcam(sess, device_id=0, class_names=None, input_size=640):
         print(f"Error: Could not open webcam device {device_id}")
         return
 
-    print("Webcam opened successfully. Press 'q' to quit.")
+    print(f"Webcam opened successfully. Press 'q' to quit.")
 
     # Variables for FPS calculation
     prev_time = 0
@@ -447,49 +450,27 @@ def process_webcam(sess, device_id=0, class_names=None, input_size=640):
 
 def main(args):
     """Main function."""
-    # Set up providers based on user selection or use default priority list
-    if args.provider:
-        providers = [args.provider]
-    else:
-        providers = [
-            (
-                "TensorrtExecutionProvider",
-                {
-                    "device_id": 0,
-                    "trt_max_workspace_size": 2147483648,
-                    "trt_fp16_enable": False,
-                    "trt_engine_cache_enable": True,
-                    "trt_engine_cache_path": "./trt_cache",
-                    "trt_force_sequential_engine_build": True,
-                    "trt_max_partition_iterations": 1000,
-                    "trt_min_subgraph_size": 5,
-                    "trt_builder_optimization_level": 3,
-                    "trt_timing_cache_enable": True,
-                },
-            ),
-            "CUDAExecutionProvider",
-            {
-                "device_id": 0,
-                "arena_extend_strategy": "kNextPowerOfTwo",
-                "gpu_mem_limit": 2 * 1024 * 1024 * 1024,
-                "cudnn_conv_algo_search": "EXHAUSTIVE",
-                "do_copy_in_default_stream": True,
-            },
-            "CPUExecutionProvider",
-        ]
+    # Set up ONNX runtime session with specified providers
+    providers = [
+        "TensorrtExecutionProvider",
+        "CUDAExecutionProvider",
+        "CPUExecutionProvider",
+    ]
 
     # Load the ONNX model with specified providers
-    print(f"Loading ONNX model with providers: {providers}...")
-    sess_options = ort.SessionOptions()
-    sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+    try:
+        print(f"Loading ONNX model with providers: {providers}...")
+        sess_options = ort.SessionOptions()
 
-    os.makedirs("./trt_cache", exist_ok=True)
-
-    sess = ort.InferenceSession(
-        args.onnx, sess_options=sess_options, providers=providers
-    )
-    print(f"Using device: {ort.get_device()}")
-    print(f"Active provider: {sess.get_providers()[0]}")
+        sess = ort.InferenceSession(
+            args.onnx, sess_options=sess_options, providers=providers
+        )
+        print(f"Using device: {ort.get_device()}")
+    except Exception as e:
+        print(f"Error creating inference session with providers {providers}: {e}")
+        print("Attempting to fall back to CPU execution...")
+        sess = ort.InferenceSession(args.onnx, providers=["CPUExecutionProvider"])
+        print(f"Using device: {ort.get_device()}")
 
     # Load class names if provided
     class_names = None
@@ -544,12 +525,6 @@ if __name__ == "__main__":
         type=int,
         default=640,
         help="Input image size for the model (default: 640)",
-    )
-    parser.add_argument(
-        "--provider",
-        type=str,
-        choices=["TensorrtExecutionProvider", "CUDAExecutionProvider", "CPUExecutionProvider"],
-        help="Specify the execution provider (default: use priority list)",
     )
     args = parser.parse_args()
 
