@@ -138,8 +138,14 @@ def process_image(sess, im_pil, class_names=None, input_size=640):
         [(pad_w, pad_h)],
         class_names=class_names,
     )
-    result_images[0].save("onnx_result.jpg")
-    print("Image processing complete. Result saved as 'result.jpg'.")
+    filename = "onnx_result.jpg"
+    result_images[0].save(filename)
+    print(f"Image processing complete. Result saved as '{filename}'.")
+
+    image = cv2.imread(filename)
+    cv2.imshow("Image", image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
 def process_video(sess, video_path, class_names=None, input_size=640):
