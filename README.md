@@ -7,14 +7,14 @@
 <div align="center">
 <img src="assets/logo.png" alt="DEIMKit Logo" width="650">
 
-<p>DEIMKit is a Python package that provides a wrapper for <a href="https://github.com/ShihuaHuang95/DEIM">DEIM: DETR with Improved Matching for Fast Convergence</a>. Check out the original repo for more details.</p>
+<p>DEIMKit is a Python wrapper for <a href="https://github.com/ShihuaHuang95/DEIM">DEIM: DETR with Improved Matching for Fast Convergence</a>. Check out the original repo for more details.</p>
 </div>
 
 ## Why DEIMKit?
 
-- **Pure Python Configuration** - No YAML or JSON files, just clean Python code
+- **Pure Python Configuration** - No complicated YAML files, just clean Python code
 - **Cross-Platform Simplicity** - Single command installation on Linux, macOS, and Windows
-- **Intuitive API** - Load, train, and predict in just a few lines of code
+- **Intuitive API** - Load, train, predict, export in just a few lines of code
 
 ## Supported Features
 
@@ -70,9 +70,9 @@ git clone https://github.com/dnth/DEIMKit.git
 cd DEIMKit
 pixi run quickstart
 ```
-This will download a toy dataset with 8 images, convert it to COCO format, and train a model on it for 3 epochs and runs inference on it. It should not take more than 1 minute to complete.
+This will download a toy dataset with 8 images, and train a model on it for 3 epochs and runs inference on it. It shouldn't take more than 1 minute to complete.
 
-If this runs without any issues, you've got a working Python environment with all the dependencies installed. This also installs DEIMKit in editable mode for development.
+If this runs without any issues, you've got a working Python environment with all the dependencies installed. This also installs DEIMKit in editable mode for development. See the [pixi cheatsheet](#-pixi-cheat-sheet) below for more. 
 
 ## Usage
 
@@ -174,7 +174,7 @@ trainer = Trainer(conf)
 trainer.fit(epochs=100)
 ```
 
-To run multigpu training (4 GPU for example), place your code into a `train.py` file and use the following command. 
+To run multigpu training (4 GPU for example), place your code into a `.py` file, e.g. `train.py` and use the following command. 
 
 ```bash
 CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --master_port=7778 --nproc_per_node=4 train.py
@@ -191,6 +191,7 @@ Monitor training progress
 ```bash
 tensorboard --logdir ./outputs/deim_hgnetv2_s_pcb
 ```
+Point `--logdir` to the `output_dir` directory.
 
 Navigate to the http://localhost:6006/ in your browser to view the training progress.
 
@@ -271,7 +272,7 @@ python scripts/live_inference.py
 >     --class-names classes.txt   
 >     --input-size 320            
 > ```
-> Under the hood, this automatically pull in the `onnxruntime-gpu` package into the `gpu-env` environment and use the GPU for inference!
+> Under the hood, this automatically pull in the `onnxruntime-gpu` package into the `cuda` environment and use the GPU for inference!
 >
 > If you want to use the CPU, replace `cuda` with `cpu` in the command above.
 
@@ -303,7 +304,7 @@ pixi run -e cpu train-model
 
 Run live inference
 ```bash
-pixi run -e cuda live-inference --onnx model.onnx --webcam --class-names classes.txt --input-size 640
+pixi run -e cuda live-inference --onnx model.onnx --webcam --provider cuda --class-names classes.txt --input-size 640
 ```
 
 > [!TIP]
