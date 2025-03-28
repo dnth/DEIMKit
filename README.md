@@ -261,6 +261,9 @@ python scripts/live_inference.py
     --class-names classes.txt   # Path to the classes file. Each class name should be on a new line.
     --input-size 320            # Input size for the model
 ```
+The following is a demo of image inference
+
+![image](assets/sample_result_image.jpg)
 
 > [!TIP]
 > If you are using Pixi, you can run the live inference script with the following command with the same arguments as above.
