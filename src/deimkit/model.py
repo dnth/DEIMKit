@@ -7,7 +7,9 @@ from loguru import logger
 def configure_model(
     config: Config,
     num_queries: Optional[int] = None,
+    num_top_queries: Optional[int] = None,
     use_pretrained_backbone: Optional[bool] = None,
+    freeze_at: Optional[int] = None,
 ) -> Config:
     """
     Applies specific model parameter overrides to an existing Config object
@@ -18,8 +20,9 @@ def configure_model(
     Args:
         config: The deimkit Config object to modify.
         num_queries: Number of object queries for the decoder (e.g., DFINETransformer).
+        num_top_queries: Number of top queries for the PostProcessor.
         use_pretrained_backbone: Whether to load pretrained weights for the backbone.
-
+        freeze_at: Which part to freeze in the model. Default is -1 (no freezing). If 0 freeze the stem block in the backbone.
     Returns:
         The modified Config object (the same instance passed in).
 
@@ -71,9 +74,15 @@ def configure_model(
             key = f"yaml_cfg.{decoder_type}.num_queries"
             updates[key] = num_queries
             logger.info(f"Setting '{key}' to: {num_queries}")
+
+            # Sets the number of top queries to be equal to the number of queries
+            key = f"yaml_cfg.PostProcessor.num_top_queries"
+            updates[key] = num_queries
+            logger.info(f"Setting '{key}' to: {num_queries}")
         else:
             logger.warning(f"Cannot set 'num_queries' because decoder type is unknown.")
 
+            
     if use_pretrained_backbone is not None:
         if backbone_type:
             key = f"yaml_cfg.{backbone_type}.pretrained"
@@ -81,6 +90,20 @@ def configure_model(
             logger.info(f"Setting '{key}' to: {use_pretrained_backbone}")
         else:
             logger.warning(f"Cannot set 'use_pretrained_backbone' because backbone type is unknown.")
+    
+    if freeze_at is not None:
+        if backbone_type:
+            key = f"yaml_cfg.{backbone_type}.freeze_at"
+            updates[key] = freeze_at
+
+            if freeze_at > 0: # If freeze_at is greater than 0, then set freeze_stem_only to False. freeze_at = 0 also means freeze the stem block.
+                key = f"yaml_cfg.{backbone_type}.freeze_stem_only"
+                updates[key] = False
+                logger.info(f"Setting '{key}' to: {False}")
+
+            logger.info(f"Setting '{key}' to: {freeze_at}")
+        else:
+            logger.warning(f"Cannot set 'freeze_at' because backbone type is unknown.")
 
     # Use the existing update method from your Config class
     if updates:
