@@ -139,6 +139,7 @@ dmypy.json
 !index_tfjs.html
 .DS_Store
 
+deim_hgnetv2_n_wholebody28*/
 deim_hgnetv2_x_wholebody28_300query/
 deim_hgnetv2_x_wholebody28_1250query/
 tools/dataset/wholebody28/
