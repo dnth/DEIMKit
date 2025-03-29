@@ -167,9 +167,15 @@ DEIMKit provides a simple interface for training your own models.
 To start, configure the dataset. Specify the model, the dataset path, batch size, etc.
 
 ```python
-from deimkit import Trainer, Config, configure_dataset
+from deimkit import Trainer, Config, configure_dataset, configure_model
 
 conf = Config.from_model_name("deim_hgnetv2_s")
+
+conf = configure_model(
+    config=conf, 
+    num_queries=100,              # Optional, default is 300
+    use_pretrained_backbone=False # Optional, default is True
+)
 
 conf = configure_dataset(
     config=conf,
