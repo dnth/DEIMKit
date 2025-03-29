@@ -528,7 +528,7 @@ If you'd like to train **DEIM** on COCO2017 with an input size of 320x320, follo
     trtexec --onnx="model.onnx" --saveEngine="model.engine" --fp16
     ```
 
-6. Export TensorFlow.js
+6. Export TFLite/TensorFlow.js
     ```shell
     pip install \
     onnx2tf \
