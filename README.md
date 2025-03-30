@@ -39,12 +39,7 @@
 ## Installation
 
 ### Using pip
-Install [torch](https://pytorch.org/get-started/locally/) and torchvision as a pre-requisite.
-
-## Installation
-
-### Using pip
-Install [torch](https://pytorch.org/get-started/locally/) and torchvision as a pre-requisite.
+If you're installing using pip, install [torch](https://pytorch.org/get-started/locally/) and torchvision as a pre-requisite.
 
 Next, install the package.
 Bleeding edge version
@@ -291,7 +286,7 @@ python scripts/live_inference.py
 ```
 The following is a demo of image inference
 
-![image](assets/sample_result_image.jpg)
+![image](assets/sample_result_image_1.jpg)
 
 > [!TIP]
 > If you are using Pixi, you can run the live inference script with the following command with the same arguments as above.

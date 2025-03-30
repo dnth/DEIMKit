@@ -96,13 +96,19 @@ class CocoEvaluator(object):
             boxes = prediction["boxes"]
             boxes = convert_to_xywh(boxes).tolist()
             scores = prediction["scores"].tolist()
-            labels = prediction["labels"].tolist()
+            labels = prediction["labels"]
+            
+            # Handle different label formats
+            if isinstance(labels, torch.Tensor):
+                labels = labels.flatten().tolist()
+            elif isinstance(labels, list) and isinstance(labels[0], list):
+                labels = [l[0] if isinstance(l, list) else l for l in labels]
 
             coco_results.extend(
                 [
                     {
                         "image_id": original_id,
-                        "category_id": labels[k],
+                        "category_id": int(labels[k]),
                         "bbox": box,
                         "score": scores[k],
                     }

@@ -57,7 +57,7 @@ def draw(images, labels, boxes, scores, ratios, paddings, thrh=0.4, class_names=
         ratio = ratios[i]
         pad_w, pad_h = paddings[i]
 
-        for lbl, bb in zip(lab, box):
+        for j, (lbl, bb) in enumerate(zip(lab, box)):
             # Get color for this class
             class_idx = int(lbl)
             color = colors[class_idx % len(colors)]
@@ -78,9 +78,9 @@ def draw(images, labels, boxes, scores, ratios, paddings, thrh=0.4, class_names=
 
             # Use class name if available, otherwise use class index
             if class_names and class_idx < len(class_names):
-                label_text = f"{class_names[class_idx]} {scr[lab == lbl][0]:.2f}"
+                label_text = f"{class_names[class_idx]} {scr[j]:.2f}"
             else:
-                label_text = f"Class {class_idx} {scr[lab == lbl][0]:.2f}"
+                label_text = f"Class {class_idx} {scr[j]:.2f}"
 
             # Draw text background
             text_size = draw.textbbox((0, 0), label_text, font=None)

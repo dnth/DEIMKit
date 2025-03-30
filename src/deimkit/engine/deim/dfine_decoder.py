@@ -261,11 +261,11 @@ class Integral(nn.Module):
         self.reg_max = reg_max
 
     def forward(self, x, project):
-        shape = x.shape
-        x = F.softmax(x.reshape(-1, self.reg_max + 1), dim=1)
-        x = F.linear(x, project.to(x.device)).reshape(-1, 4)
-        return x.reshape(list(shape[:-1]) + [-1])
-
+        n,c,h = x.shape
+        b = n*c*h // (self.reg_max + 1)
+        x = F.softmax(x.reshape([b, self.reg_max + 1]), dim=1)
+        x = F.linear(x, project.to(x.device))
+        return x.reshape([n,c,4])
 
 class LQE(nn.Module):
     def __init__(self, k, hidden_dim, num_layers, reg_max, act='relu'):
@@ -393,8 +393,10 @@ class TransformerDecoder(nn.Module):
             ref_points_detach = inter_ref_bbox.detach()
             output_detach = output.detach()
 
-        return torch.stack(dec_out_bboxes), torch.stack(dec_out_logits), \
-               torch.stack(dec_out_pred_corners), torch.stack(dec_out_refs), pre_bboxes, pre_scores
+        if len(dec_out_logits) > 1:
+            return torch.stack(dec_out_bboxes), torch.stack(dec_out_logits), torch.stack(dec_out_pred_corners), torch.stack(dec_out_refs), pre_bboxes, pre_scores
+        else:
+            return dec_out_bboxes[0], dec_out_logits[0], dec_out_pred_corners[0], dec_out_refs[0], pre_bboxes, pre_scores
 
 
 @register()
@@ -593,7 +595,8 @@ class DFINETransformer(nn.Module):
         for i, feat in enumerate(proj_feats):
             _, _, h, w = feat.shape
             # [b, c, h, w] -> [b, h*w, c]
-            feat_flatten.append(feat.flatten(2).permute(0, 2, 1))
+            n,c,h,w = feat.shape
+            feat_flatten.append(feat.reshape([n,c,h*w]).permute(0, 2, 1))
             # [num_levels, 2]
             spatial_shapes.append([h, w])
 
@@ -625,7 +628,6 @@ class DFINETransformer(nn.Module):
         valid_mask = ((anchors > self.eps) * (anchors < 1 - self.eps)).all(-1, keepdim=True)
         anchors = torch.log(anchors / (1 - anchors))
         anchors = torch.where(valid_mask, anchors, torch.inf)
-
         return anchors, valid_mask
 
 
@@ -691,14 +693,11 @@ class DFINETransformer(nn.Module):
 
         topk_ind: torch.Tensor
 
-        topk_anchors = outputs_anchors_unact.gather(dim=1, \
-            index=topk_ind.unsqueeze(-1).repeat(1, 1, outputs_anchors_unact.shape[-1]))
-
-        topk_logits = outputs_logits.gather(dim=1, \
-            index=topk_ind.unsqueeze(-1).repeat(1, 1, outputs_logits.shape[-1])) if self.training else None
-
-        topk_memory = memory.gather(dim=1, \
-            index=topk_ind.unsqueeze(-1).repeat(1, 1, memory.shape[-1]))
+        n = topk_ind.shape[0]
+        outputs_anchors_unact = outputs_anchors_unact * torch.ones([n, 1, 1], device=outputs_anchors_unact.device)
+        topk_anchors = outputs_anchors_unact.gather(dim=1, index=topk_ind.unsqueeze(-1).repeat(1, 1, outputs_anchors_unact.shape[-1]))
+        topk_logits = outputs_logits.gather(dim=1, index=topk_ind.unsqueeze(-1).repeat(1, 1, outputs_logits.shape[-1])) if self.training else None
+        topk_memory = memory.gather(dim=1, index=topk_ind.unsqueeze(-1).repeat(1, 1, memory.shape[-1]))
 
         return topk_memory, topk_logits, topk_anchors
 
@@ -752,21 +751,21 @@ class DFINETransformer(nn.Module):
 
 
         if self.training:
-            out = {'pred_logits': out_logits[-1], 'pred_boxes': out_bboxes[-1], 'pred_corners': out_corners[-1],
-                   'ref_points': out_refs[-1], 'up': self.up, 'reg_scale': self.reg_scale}
+            out = {'pred_logits': out_logits[-1], 'pred_boxes': out_bboxes[-1], 'pred_corners': out_corners[-1], 'ref_points': out_refs[-1], 'up': self.up, 'reg_scale': self.reg_scale}
         else:
-            out = {'pred_logits': out_logits[-1], 'pred_boxes': out_bboxes[-1]}
+            if len(out_logits.shape) == 4:
+                out = {'pred_logits': out_logits[-1], 'pred_boxes': out_bboxes[-1]}
+            else:
+                out = {'pred_logits': out_logits, 'pred_boxes': out_bboxes}
 
         if self.training and self.aux_loss:
-            out['aux_outputs'] = self._set_aux_loss2(out_logits[:-1], out_bboxes[:-1], out_corners[:-1], out_refs[:-1],
-                                                     out_corners[-1], out_logits[-1])
+            out['aux_outputs'] = self._set_aux_loss2(out_logits[:-1], out_bboxes[:-1], out_corners[:-1], out_refs[:-1], out_corners[-1], out_logits[-1])
             out['enc_aux_outputs'] = self._set_aux_loss(enc_topk_logits_list, enc_topk_bboxes_list)
             out['pre_outputs'] = {'pred_logits': pre_logits, 'pred_boxes': pre_bboxes}
             out['enc_meta'] = {'class_agnostic': self.query_select_method == 'agnostic'}
 
             if dn_meta is not None:
-                out['dn_outputs'] = self._set_aux_loss2(dn_out_logits, dn_out_bboxes, dn_out_corners, dn_out_refs,
-                                                        dn_out_corners[-1], dn_out_logits[-1])
+                out['dn_outputs'] = self._set_aux_loss2(dn_out_logits, dn_out_bboxes, dn_out_corners, dn_out_refs, dn_out_corners[-1], dn_out_logits[-1])
                 out['dn_pre_outputs'] = {'pred_logits': dn_pre_logits, 'pred_boxes': dn_pre_bboxes}
                 out['dn_meta'] = dn_meta
 

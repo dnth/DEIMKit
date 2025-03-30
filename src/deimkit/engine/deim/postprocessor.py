@@ -47,21 +47,23 @@ class PostProcessor(nn.Module):
         return f'use_focal_loss={self.use_focal_loss}, num_classes={self.num_classes}, num_top_queries={self.num_top_queries}'
 
     # def forward(self, outputs, orig_target_sizes):
-    def forward(self, outputs, orig_target_sizes: torch.Tensor):
+    def forward(self, outputs, orig_target_sizes: torch.Tensor=None):
         logits, boxes = outputs['pred_logits'], outputs['pred_boxes']
         # orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
 
         bbox_pred = torchvision.ops.box_convert(boxes, in_fmt='cxcywh', out_fmt='xyxy')
-        bbox_pred *= orig_target_sizes.repeat(1, 2).unsqueeze(1)
+        if orig_target_sizes is not None:
+            bbox_pred *= orig_target_sizes.repeat(1, 2).unsqueeze(1)
 
         if self.use_focal_loss:
             scores = F.sigmoid(logits)
             scores, index = torch.topk(scores.flatten(1), self.num_top_queries, dim=-1)
-            # TODO for older tensorrt
-            # labels = index % self.num_classes
+            if orig_target_sizes is None:
+                scores = scores.unsqueeze(-1)
+            index = index.unsqueeze(-1)
             labels = mod(index, self.num_classes)
             index = index // self.num_classes
-            boxes = bbox_pred.gather(dim=1, index=index.unsqueeze(-1).repeat(1, 1, bbox_pred.shape[-1]))
+            boxes = bbox_pred.gather(dim=1, index=index.repeat(1, 1, bbox_pred.shape[-1]))
 
         else:
             scores = F.softmax(logits)[:, :, :-1]
@@ -73,7 +75,10 @@ class PostProcessor(nn.Module):
 
         # TODO for onnx export
         if self.deploy_mode:
-            return labels, boxes, scores
+            if orig_target_sizes is not None:
+                return labels, boxes, scores
+            else:
+                return torch.cat([labels, boxes, scores], dim=2)
 
         # TODO
         if self.remap_mscoco_category:
@@ -83,6 +88,8 @@ class PostProcessor(nn.Module):
 
         results = []
         for lab, box, sco in zip(labels, boxes, scores):
+            # Ensure labels are flattened single values
+            lab = lab.flatten() if isinstance(lab, torch.Tensor) else lab
             result = dict(labels=lab, boxes=box, scores=sco)
             results.append(result)
 
