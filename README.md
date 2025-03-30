@@ -340,3 +340,144 @@ pixi run export --config config.yml --checkpoint model.pth --output model.onnx
 
 ## Disclaimer
 I'm not affiliated with the original DEIM authors. I just found the model interesting and wanted to try it out. The changes made here are of my own. Please cite and star the original repo if you find this useful.
+
+# Model Optimization Framework
+
+A standalone framework for optimizing PyTorch models (including DEIM and YOLO) for edge deployment.
+
+## Features
+
+- **Aggressive Optimization**: Transform models from larger sizes to nano-equivalent speeds
+- **Multiple Optimization Techniques**: Pruning, quantization, ONNX export, TensorRT acceleration
+- **Knowledge Distillation**: Transfer knowledge from larger teacher models to smaller student models
+- **Comprehensive Benchmarking**: Compare different model variants and optimization techniques
+- **YOLOv10 Integration**: Benchmark against YOLOv10 models for comparison
+- **Plug-and-Play Design**: Easy-to-use interface for testing different model versions and techniques
+
+## Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/model-optimization-framework.git
+cd model-optimization-framework
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+## Dependencies
+
+- PyTorch >= 1.10.0
+- torchvision
+- numpy
+- matplotlib
+- onnx (optional, for ONNX export)
+- onnxruntime (optional, for ONNX optimization)
+- tensorrt (optional, for TensorRT acceleration)
+- ultralytics (optional, for YOLOv10 benchmarking)
+
+## Usage
+
+### Quick Start
+
+The framework provides five main optimization targets:
+
+1. **Drone**: Optimize for low-power CPU devices
+2. **Edge**: Optimize for edge devices with moderate computational capability
+3. **Server**: Optimize for server deployment with GPUs
+4. **Benchmark**: Run comprehensive benchmarks comparing multiple models
+5. **Distill**: Perform knowledge distillation from larger to smaller models
+
+### Examples
+
+#### Optimize a DEIM model for drone deployment:
+
+```bash
+python optimize_model.py --target drone --model-path path/to/model.pth --model-type deim --model-size s
+```
+
+#### Optimize a model for edge device deployment:
+
+```bash
+python optimize_model.py --target edge --model-path path/to/model.pth --model-type deim --model-size s
+```
+
+#### Optimize a model for server deployment:
+
+```bash
+python optimize_model.py --target server --model-path path/to/model.pth --model-type deim --model-size s
+```
+
+#### Run benchmarks comparing DEIM models and YOLOv10:
+
+```bash
+python optimize_model.py --target benchmark --model-path path/to/deim/model.pth --model-type deim
+```
+
+#### Distill knowledge from a large model to a nano model:
+
+```bash
+python optimize_model.py --target distill --teacher-path path/to/large/model.pth --student-path path/to/nano/model.pth --dataset-path path/to/dataset
+```
+
+## Optimization Strategies
+
+### Drone Optimization Strategy
+
+Targets low-power CPU devices with:
+- Aggressive pruning (60% in backbone, 40% in encoder, 20% in decoder)
+- INT8 dynamic quantization
+- Model size reduction focused on inference speed
+
+### Edge Device Optimization Strategy
+
+Balanced approach for edge devices:
+- Moderate pruning (30% in backbone, 20% in encoder, 10% in decoder)
+- ONNX optimization for better inference
+- TensorRT acceleration if GPU is available
+
+### Server Optimization Strategy
+
+Focuses on maximum accuracy with GPU acceleration:
+- No pruning to maintain accuracy
+- TorchScript export for better deployment
+- ONNX and TensorRT optimization for high throughput
+
+## Knowledge Distillation
+
+The framework includes knowledge distillation capabilities to transfer knowledge from larger teacher models to smaller student models:
+
+- Temperature-based softening of probability distributions
+- Combined cross-entropy and KL-divergence loss
+- Support for feature-level distillation
+- Detection-specific distillation for bounding box regression
+
+## Benchmarking
+
+The benchmarking module allows comprehensive comparison of:
+
+- Different model sizes (nano, small, medium, large, xlarge)
+- Various optimization techniques
+- Model types (DEIM, YOLO)
+- Performance metrics (latency, throughput)
+
+## Extensibility
+
+The framework is designed to be extensible:
+
+- Support for custom PyTorch models
+- Customizable optimization parameters
+- Add new optimization techniques by extending the `ModelOptimizer` class
+- Implement custom benchmarks by extending the `ModelBenchmark` class
+
+## License
+
+[MIT License](LICENSE)
+
+## Acknowledgements
+
+- [DEIMKit](https://github.com/dnth/DEIMKit): Detection with Enhanced Interior Matching
+- [Ultralytics YOLOv10](https://github.com/ultralytics/ultralytics): Real-time object detection
+- [PyTorch](https://pytorch.org/): The deep learning framework used
+- [ONNX](https://onnx.ai/): Open Neural Network Exchange
+- [TensorRT](https://developer.nvidia.com/tensorrt): High-performance deep learning inference optimizer
