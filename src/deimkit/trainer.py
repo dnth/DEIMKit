@@ -213,6 +213,7 @@ class Trainer:
         warmup_iter: int | None = None,
         ema_warmups: int | None = None,
         lr: float | None = None,
+        weight_decay: float | None = None,
         stop_epoch: int | None = None,
         mixup_epochs: list[int] | None = None,
         save_best_only: bool = False,
@@ -252,9 +253,9 @@ class Trainer:
         if lr is not None:
             logger.info(f"Overriding learning rate to {lr}")
             self.config.yaml_cfg["optimizer"]["lr"] = lr
-            # Update optimizer's learning rate
-            for param_group in self.optimizer.param_groups:
-                param_group["lr"] = lr
+        if weight_decay is not None:
+            logger.info(f"Overriding weight decay to {weight_decay}")
+            self.config.yaml_cfg["optimizer"]["weight_decay"] = weight_decay
         
         # Set pretrained flag in config
         if "pretrained" in self.config.yaml_cfg.get("model", {}):
