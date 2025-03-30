@@ -171,12 +171,15 @@ from deimkit import Trainer, Config, configure_dataset, configure_model
 
 conf = Config.from_model_name("deim_hgnetv2_s")
 
+# Optional
 conf = configure_model(
     config=conf, 
-    num_queries=100,              # Optional, default is 300
-    use_pretrained_backbone=False # Optional, default is True
+    num_queries=100,   # Optional, default is 300
+    pretrained=True,   # Optional, default is True
+    freeze_at=-1       # Optional, default is -1 (no freezing)
 )
 
+# Required
 conf = configure_dataset(
     config=conf,
     image_size=(640, 640),
@@ -191,7 +194,15 @@ conf = configure_dataset(
 )
 
 trainer = Trainer(conf)
-trainer.fit(epochs=100)
+
+# All arguments are optional, if not specified, the default values for the model will be used.
+trainer.fit(
+    epochs=100,          # Number of training epochs
+    save_best_only=True, # Save only the best model checkpoint
+    lr=0.0001,           # Learning rate
+    lr_gamma=0.1,        # Learning rate annealing factor
+    weight_decay=0.0001, # Weight decay
+)
 ```
 
 To run multigpu training (4 GPU for example), place your code into a `.py` file, e.g. `train.py` and use the following command. 
