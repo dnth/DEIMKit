@@ -399,6 +399,215 @@ def run_inference_webcam(model_path, class_names_path=None, provider="cpu", thre
         cv2.destroyAllWindows()
 
 
+def run_inference_video(model_path, video_path, class_names_path=None, provider="cpu", threshold=0.3, video_width=640):
+    """Run object detection on a video file."""
+    # Set up providers (same as webcam function)
+    if provider == "cpu":
+        providers = ["CPUExecutionProvider"]
+    elif provider == "cuda":
+        providers = [
+            (
+                "CUDAExecutionProvider",
+                {
+                    "arena_extend_strategy": "kNextPowerOfTwo",
+                    "gpu_mem_limit": 2 * 1024 * 1024 * 1024,
+                    "cudnn_conv_algo_search": "EXHAUSTIVE",
+                    "do_copy_in_default_stream": True,
+                },
+            ),
+            "CPUExecutionProvider",
+        ]
+    elif provider == "tensorrt":
+        providers = [
+            (
+                "TensorrtExecutionProvider",
+                {
+                    "trt_fp16_enable": False,
+                    "trt_engine_cache_enable": True,
+                    "trt_engine_cache_path": "./trt_cache",
+                    "trt_timing_cache_enable": True,
+                },
+            ),
+            "CPUExecutionProvider",
+        ]
+
+    # Initialize model session
+    try:
+        print(f"Loading ONNX model with providers: {providers}...")
+        session = ort.InferenceSession(model_path, providers=providers)
+        print(f"Using provider: {session.get_providers()[0]}")
+    except Exception as e:
+        print(f"Error creating inference session with providers {providers}: {e}")
+        print("Attempting to fall back to CPU execution...")
+        session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+
+    # Load class names
+    class_names = None
+    if class_names_path:
+        try:
+            with open(class_names_path, "r") as f:
+                class_names = [line.strip() for line in f.readlines()]
+            print(f"Loaded {len(class_names)} class names")
+        except Exception as e:
+            print(f"Error loading class names: {e}")
+
+    # Open video file
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise RuntimeError(f"Failed to open video file: {video_path}")
+
+    # Get video properties
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    # Create video writer
+    output_path = "detection_output.mp4"
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
+
+    # Initialize FPS calculation
+    prev_time = time.time()
+    fps_display = 0
+    frame_count = 0
+
+    try:
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            frame_count += 1
+            if frame_count % 10 == 0:
+                progress = (frame_count / total_frames) * 100
+                print(f"Processing: {progress:.1f}% complete", end='\r')
+
+            # Calculate FPS
+            current_time = time.time()
+            if current_time - prev_time > 0:
+                fps_display = 1 / (current_time - prev_time)
+            prev_time = current_time
+
+            # Calculate scaling and padding using video_width parameter
+            height, width = frame.shape[:2]
+            scale = video_width / max(height, width)
+            new_height = int(height * scale)
+            new_width = int(width * scale)
+            
+            # Calculate padding
+            y_offset = (video_width - new_height) // 2
+            x_offset = (video_width - new_width) // 2
+            
+            # Create model input with padding using video_width
+            model_input = np.zeros((video_width, video_width, 3), dtype=np.uint8)
+            model_input[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = cv2.resize(frame, (new_width, new_height))
+
+            # Convert BGR to RGB for model input
+            image = cv2.cvtColor(model_input, cv2.COLOR_BGR2RGB)
+            
+            # Prepare input data
+            im_data = np.ascontiguousarray(
+                image.transpose(2, 0, 1),
+                dtype=np.float32,
+            )
+            im_data = np.expand_dims(im_data, axis=0)
+            orig_size = np.array([[video_width, video_width]], dtype=np.int64)  # Use padded size
+
+            # Run inference
+            input_name = session.get_inputs()[0].name
+            outputs = session.run(
+                output_names=None,
+                input_feed={input_name: im_data, "orig_target_sizes": orig_size},
+            )
+
+            # Process outputs
+            labels, boxes, scores = outputs
+
+            # Scale boxes from padded 640x640 to original frame size
+            boxes = boxes[0]  # Remove batch dimension
+            boxes[:, [0, 2]] = (boxes[:, [0, 2]] - x_offset) / scale  # x coordinates
+            boxes[:, [1, 3]] = (boxes[:, [1, 3]] - y_offset) / scale  # y coordinates
+
+            # Draw bounding boxes on the original frame
+            result_image = draw_boxes(
+                frame,  # Use original frame
+                labels[0],
+                boxes,
+                scores[0],
+                1.0,  # No additional scaling needed
+                (0, 0),  # No additional padding needed
+                threshold=threshold,
+                class_names=class_names,
+            )
+
+            # Add FPS counter and provider info (matching webcam style)
+            fps_text = f"FPS: {fps_display:.1f}"
+            text_size = cv2.getTextSize(fps_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+            text_x = result_image.shape[1] - text_size[0] - 10
+            text_y = 30
+
+            # Draw FPS background rectangle
+            cv2.rectangle(
+                result_image,
+                (text_x - 5, text_y - text_size[1] - 5),
+                (text_x + text_size[0] + 5, text_y + 5),
+                (139, 0, 0),
+                -1,
+            )
+
+            # Draw FPS text
+            cv2.putText(
+                result_image,
+                fps_text,
+                (text_x, text_y),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (255, 255, 255),
+                2,
+            )
+
+            # Add provider display at bottom (matching webcam style)
+            provider_text = f"Provider: {session.get_providers()[0]}"
+            text_size = cv2.getTextSize(provider_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+            text_x = (result_image.shape[1] - text_size[0]) // 2
+            text_y = result_image.shape[0] - 20
+
+            # Draw provider background rectangle
+            cv2.rectangle(
+                result_image,
+                (text_x - 5, text_y - text_size[1] - 5),
+                (text_x + text_size[0] + 5, text_y + 5),
+                (139, 0, 0),
+                -1,
+            )
+
+            # Draw provider text
+            cv2.putText(
+                result_image,
+                provider_text,
+                (text_x, text_y),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (255, 255, 255),
+                2,
+            )
+
+            # Write frame to output video
+            out.write(result_image)
+
+            # Display frame (optional)
+            cv2.imshow('Video Detection', result_image)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+    finally:
+        cap.release()
+        out.release()
+        cv2.destroyAllWindows()
+        print(f"\nVideo processing complete. Output saved to {output_path}")
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -434,6 +643,9 @@ if __name__ == "__main__":
         default=0.3,
         help="Detection confidence threshold (default: 0.3)",
     )
+    parser.add_argument(
+        "--video", type=str, help="Path to input video file (optional)"
+    )
 
     args = parser.parse_args()
 
@@ -442,6 +654,15 @@ if __name__ == "__main__":
             args.model, 
             args.classes, 
             args.provider, 
+            args.threshold,
+            args.video_width
+        )
+    elif args.video:
+        run_inference_video(
+            args.model,
+            args.video,
+            args.classes,
+            args.provider,
             args.threshold,
             args.video_width
         )
@@ -454,6 +675,6 @@ if __name__ == "__main__":
             args.provider
         )
     else:
-        parser.error("Either --image or --webcam must be specified")
+        parser.error("Either --image, --video, or --webcam must be specified")
 
     
