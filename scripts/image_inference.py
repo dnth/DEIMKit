@@ -30,19 +30,17 @@ def draw_boxes(
     boxes = boxes[valid_indices]
     scores = scores[valid_indices]
 
-    pad_w, pad_h = padding
-
     for j, (lbl, box, score) in enumerate(zip(labels, boxes, scores)):
         # Get color for this class
         class_idx = int(lbl)
         color = colors[class_idx % len(colors)]
 
-        # Adjust bounding box coordinates
+        # Use box coordinates directly
         box_coords = [
-            int((box[0] - pad_w) / ratio),
-            int((box[1] - pad_h) / ratio),
-            int((box[2] - pad_w) / ratio),
-            int((box[3] - pad_h) / ratio),
+            int(box[0]),  # x1
+            int(box[1]),  # y1
+            int(box[2]),  # x2
+            int(box[3]),  # y2
         ]
 
         # Draw rectangle
@@ -92,7 +90,7 @@ def draw_boxes(
     return image
 
 
-def run_inference(model_path, image_path, class_names_path=None):
+def run_inference(model_path, image_path, class_names_path=None, threshold=0.3):
     print(f"Loading ONNX model from {model_path}...")
     session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
     print(f"Using provider: {session.get_providers()[0]}")
@@ -144,6 +142,7 @@ def run_inference(model_path, image_path, class_names_path=None):
         scores[0],
         1.0,  # No ratio needed since we're not resizing
         (0, 0),  # No padding needed
+        threshold=threshold,
         class_names=class_names,
     )
 
@@ -163,7 +162,7 @@ def run_inference(model_path, image_path, class_names_path=None):
     return result_image
 
 
-def run_inference_webcam(model_path, class_names_path=None, provider="cpu"):
+def run_inference_webcam(model_path, class_names_path=None, provider="cpu", threshold=0.3):
     """Run real-time object detection on webcam feed."""
     # Set up providers based on selection
     if provider == "cpu":
@@ -204,12 +203,10 @@ def run_inference_webcam(model_path, class_names_path=None, provider="cpu"):
         print("Attempting to fall back to CPU execution...")
         session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
 
-    # Variables for FPS calculation
+    # Update FPS calculation variables
     prev_time = time.time()
-    curr_time = 0
     fps_display = 0
-    show_provider = True
-
+    
     # Load class names if provided
     class_names = None
     if class_names_path:
@@ -233,47 +230,38 @@ def run_inference_webcam(model_path, class_names_path=None, provider="cpu"):
                 break
 
             # Calculate FPS
-            curr_time = time.time()
-            if curr_time - prev_time > 0:  # Avoid division by zero
-                fps_display = 1 / (curr_time - prev_time)
-            prev_time = curr_time
+            current_time = time.time()
+            if current_time - prev_time > 0:  # Avoid division by zero
+                fps_display = 1 / (current_time - prev_time)
+            prev_time = current_time
 
-            # Calculate padding to make the frame square
+            # Calculate scaling and padding
             height, width = frame.shape[:2]
-            max_dim = max(height, width)
-            
-            # Create a square black canvas
-            square_frame = np.zeros((max_dim, max_dim, 3), dtype=np.uint8)
+            scale = 640.0 / max(height, width)
+            new_height = int(height * scale)
+            new_width = int(width * scale)
             
             # Calculate padding
-            pad_top = (max_dim - height) // 2
-            pad_left = (max_dim - width) // 2
+            y_offset = (640 - new_height) // 2
+            x_offset = (640 - new_width) // 2
             
-            # Place the original frame in the center of the square canvas
-            square_frame[pad_top:pad_top+height, pad_left:pad_left+width] = frame
-            
-            # Store original dimensions and scale factor
-            scale_factor = 640 / max_dim
-            
-            # Resize to 640x640
-            square_frame = cv2.resize(square_frame, (640, 640))
+            # Create model input with padding
+            model_input = np.zeros((640, 640, 3), dtype=np.uint8)
+            model_input[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = cv2.resize(frame, (new_width, new_height))
 
-            # Convert BGR to RGB
-            image = cv2.cvtColor(square_frame, cv2.COLOR_BGR2RGB)
-            original_image = image.copy()
-
+            # Convert BGR to RGB for model input
+            image = cv2.cvtColor(model_input, cv2.COLOR_BGR2RGB)
+            
             # Prepare input data
             im_data = np.ascontiguousarray(
-                image.transpose(2, 0, 1),  # HWC to CHW format
+                image.transpose(2, 0, 1),
                 dtype=np.float32,
             )
-            im_data = np.expand_dims(im_data, axis=0)  # Add batch dimension
+            im_data = np.expand_dims(im_data, axis=0)
             orig_size = np.array([[640, 640]], dtype=np.int64)  # Use padded size
 
-            # Get input name from model metadata
+            # Get input name and run inference
             input_name = session.get_inputs()[0].name
-
-            # Run inference
             outputs = session.run(
                 output_names=None,
                 input_feed={input_name: im_data, "orig_target_sizes": orig_size},
@@ -282,20 +270,26 @@ def run_inference_webcam(model_path, class_names_path=None, provider="cpu"):
             # Process outputs
             labels, boxes, scores = outputs
 
-            # Draw bounding boxes on the image
+            # Scale boxes from padded 640x640 to original frame size
+            boxes = boxes[0]  # Remove batch dimension
+            boxes[:, [0, 2]] = (boxes[:, [0, 2]] - x_offset) / scale  # x coordinates
+            boxes[:, [1, 3]] = (boxes[:, [1, 3]] - y_offset) / scale  # y coordinates
+
+            # Draw bounding boxes on the original frame
             result_image = draw_boxes(
-                original_image,
+                frame,  # Use original frame
                 labels[0],
-                boxes[0],
+                boxes,
                 scores[0],
-                1.0,  # No ratio needed since we're using the padded size
-                (0, 0),  # No need to adjust for padding here
+                1.0,  # No additional scaling needed
+                (0, 0),  # No additional padding needed
+                threshold=threshold,
                 class_names=class_names,
             )
 
-            # Convert back to BGR for display
-            result_bgr = cv2.cvtColor(result_image, cv2.COLOR_RGB2BGR)
-            
+            # No need to convert back to BGR since we're using the original frame
+            result_bgr = result_image
+
             # Add FPS and provider display
             fps_text = f"FPS: {fps_display:.1f}"
             text_size = cv2.getTextSize(fps_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
@@ -323,31 +317,30 @@ def run_inference_webcam(model_path, class_names_path=None, provider="cpu"):
             )
 
             # Add provider display
-            if show_provider:
-                provider_text = f"Provider: {session.get_providers()[0]}"
-                text_size = cv2.getTextSize(provider_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
-                text_x = (result_bgr.shape[1] - text_size[0]) // 2
-                text_y = result_bgr.shape[0] - 20
+            provider_text = f"Provider: {session.get_providers()[0]}"
+            text_size = cv2.getTextSize(provider_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+            text_x = (result_bgr.shape[1] - text_size[0]) // 2
+            text_y = result_bgr.shape[0] - 20
 
-                # Draw provider background rectangle
-                cv2.rectangle(
-                    result_bgr,
-                    (text_x - 5, text_y - text_size[1] - 5),
-                    (text_x + text_size[0] + 5, text_y + 5),
-                    (139, 0, 0),
-                    -1,
-                )
+            # Draw provider background rectangle
+            cv2.rectangle(
+                result_bgr,
+                (text_x - 5, text_y - text_size[1] - 5),
+                (text_x + text_size[0] + 5, text_y + 5),
+                (139, 0, 0),
+                -1,
+            )
 
-                # Draw provider text
-                cv2.putText(
-                    result_bgr,
-                    provider_text,
-                    (text_x, text_y),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.8,
-                    (255, 255, 255),
-                    2,
-                )
+            # Draw provider text
+            cv2.putText(
+                result_bgr,
+                provider_text,
+                (text_x, text_y),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (255, 255, 255),
+                2,
+            )
 
             # Display the result
             cv2.imshow("Webcam Detection", result_bgr)
@@ -356,8 +349,6 @@ def run_inference_webcam(model_path, class_names_path=None, provider="cpu"):
             key = cv2.waitKey(1) & 0xFF
             if key == ord('q'):
                 break
-            elif key == ord('p'):
-                show_provider = not show_provider
 
     finally:
         cap.release()
@@ -387,13 +378,19 @@ if __name__ == "__main__":
         default="cpu",
         help="ONNXRuntime provider to use for inference",
     )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.3,
+        help="Detection confidence threshold (default: 0.3)",
+    )
 
     args = parser.parse_args()
 
     if args.webcam:
-        run_inference_webcam(args.model, args.classes, args.provider)
+        run_inference_webcam(args.model, args.classes, args.provider, args.threshold)
     elif args.image:
-        run_inference(args.model, args.image, args.classes)
+        run_inference(args.model, args.image, args.classes, args.threshold)
     else:
         parser.error("Either --image or --webcam must be specified")
 
