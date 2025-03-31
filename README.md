@@ -239,7 +239,10 @@ output_path = exporter.to_onnx(
 Run a Gradio app to interact with your model.
 
 ```bash
-python scripts/gradio_demo.py --model "best_prep.onnx" --classes "classes.txt" --examples "Rock Paper Scissors SXSW.v14i.coco/test"
+python scripts/gradio_demo.py \
+    --model "best.onnx" \
+    --classes "classes.txt" \
+    --examples "Rock Paper Scissors SXSW.v14i.coco/test"
 ```
 ![alt text](assets/gradio_demo.png)
 
