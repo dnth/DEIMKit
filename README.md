@@ -246,6 +246,11 @@ python scripts/gradio_demo.py \
 ```
 ![alt text](assets/gradio_demo.png)
 
+> [!TIP]
+> The demo app uses onnx model and onnxruntime for inference. Additionally, I have also made it that the ONNX model to accept any input size, despite the original model was trained on 640x640 images. 
+> This means you can use any image size you want. Play around with the input size to see what works best for your model. 
+> Some objects are visible even at lower input sizes, this means you can use a lower input size to speed up inference.
+
 ### Live Inference
 Run live inference on a video, image or webcam using ONNXRuntime. This runs on CPU by default.
 If you would like to use the CUDA backend, you can install the `onnxruntime-gpu` package and uninstall the `onnxruntime` package.
