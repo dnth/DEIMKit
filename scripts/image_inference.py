@@ -257,14 +257,17 @@ def run_inference_webcam(model_path, class_names_path=None, provider="cpu", thre
     if not cap.isOpened():
         raise RuntimeError("Failed to open webcam")
     
-    # Set webcam resolution
-    original_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    original_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    aspect_ratio = original_height / original_width
-    new_height = int(video_width * aspect_ratio)
-    
+    # Set camera to maximum possible FPS
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))  # Use MJPG format for higher FPS
+    cap.set(cv2.CAP_PROP_FPS, 1000)  # Request very high FPS - will default to max supported
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, new_height)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, int(video_width * 9/16))  # 16:9 aspect ratio
+    
+    # Print actual camera properties
+    actual_fps = cap.get(cv2.CAP_PROP_FPS)
+    actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    print(f"Camera settings - FPS: {actual_fps}, Resolution: {actual_width}x{actual_height}")
 
     try:
         while True:
