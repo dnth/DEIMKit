@@ -118,6 +118,9 @@ def run_inference(model_path, image_path, class_names_path=None):
     im_data = np.expand_dims(im_data, axis=0)  # Add batch dimension
     orig_size = np.array([[image.shape[0], image.shape[1]]], dtype=np.int64)
 
+    print(f"Image frame shape: {image.shape}")
+    print(f"Processed input shape: {im_data.shape}")
+
     # Get input name from model metadata
     input_name = session.get_inputs()[0].name
 
@@ -159,6 +162,104 @@ def run_inference(model_path, image_path, class_names_path=None):
     return result_image
 
 
+def run_inference_webcam(model_path, class_names_path=None):
+    """Run real-time object detection on webcam feed."""
+    print(f"Loading ONNX model from {model_path}...")
+    session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+    print(f"Using provider: {session.get_providers()[0]}")
+
+    # Load class names if provided
+    class_names = None
+    if class_names_path:
+        try:
+            with open(class_names_path, "r") as f:
+                class_names = [line.strip() for line in f.readlines()]
+            print(f"Loaded {len(class_names)} class names")
+        except Exception as e:
+            print(f"Error loading class names: {e}")
+
+    # Initialize webcam
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        raise RuntimeError("Failed to open webcam")
+
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("Failed to grab frame")
+                break
+
+            # Calculate padding to make the frame square
+            height, width = frame.shape[:2]
+            max_dim = max(height, width)
+            
+            # Create a square black canvas
+            square_frame = np.zeros((max_dim, max_dim, 3), dtype=np.uint8)
+            
+            # Calculate padding
+            pad_top = (max_dim - height) // 2
+            pad_left = (max_dim - width) // 2
+            
+            # Place the original frame in the center of the square canvas
+            square_frame[pad_top:pad_top+height, pad_left:pad_left+width] = frame
+            
+            # Store original dimensions and scale factor
+            scale_factor = 640 / max_dim
+            
+            # Resize to 640x640
+            square_frame = cv2.resize(square_frame, (640, 640))
+
+            # Convert BGR to RGB
+            image = cv2.cvtColor(square_frame, cv2.COLOR_BGR2RGB)
+            original_image = image.copy()
+
+            # Prepare input data
+            im_data = np.ascontiguousarray(
+                image.transpose(2, 0, 1),  # HWC to CHW format
+                dtype=np.float32,
+            )
+            im_data = np.expand_dims(im_data, axis=0)  # Add batch dimension
+            orig_size = np.array([[640, 640]], dtype=np.int64)  # Use padded size
+
+            # Get input name from model metadata
+            input_name = session.get_inputs()[0].name
+
+            # Run inference
+            outputs = session.run(
+                output_names=None,
+                input_feed={input_name: im_data, "orig_target_sizes": orig_size},
+            )
+
+            # Process outputs
+            labels, boxes, scores = outputs
+
+            # Draw bounding boxes on the image
+            result_image = draw_boxes(
+                original_image,
+                labels[0],
+                boxes[0],
+                scores[0],
+                1.0,  # No ratio needed since we're using the padded size
+                (0, 0),  # No need to adjust for padding here
+                class_names=class_names,
+            )
+
+            # Convert back to BGR for display
+            result_bgr = cv2.cvtColor(result_image, cv2.COLOR_RGB2BGR)
+            
+            # Display the result
+            cv2.imshow("Webcam Detection", result_bgr)
+
+            # Break loop on 'q' press
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -166,11 +267,23 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model", type=str, required=True, help="Path to ONNX model file"
     )
-    parser.add_argument("--image", type=str, required=True, help="Path to input image")
+    parser.add_argument(
+        "--image", type=str, help="Path to input image (optional)"
+    )
+    parser.add_argument(
+        "--webcam", action="store_true", help="Use webcam input"
+    )
     parser.add_argument(
         "--classes", type=str, help="Path to class names file (optional)"
     )
 
     args = parser.parse_args()
 
-    run_inference(args.model, args.image, args.classes)
+    if args.webcam:
+        run_inference_webcam(args.model, args.classes)
+    elif args.image:
+        run_inference(args.model, args.image, args.classes)
+    else:
+        parser.error("Either --image or --webcam must be specified")
+
+    
