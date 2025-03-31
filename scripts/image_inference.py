@@ -90,10 +90,45 @@ def draw_boxes(
     return image
 
 
-def run_inference(model_path, image_path, class_names_path=None, threshold=0.3):
-    print(f"Loading ONNX model from {model_path}...")
-    session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
-    print(f"Using provider: {session.get_providers()[0]}")
+def run_inference(model_path, image_path, class_names_path=None, threshold=0.3, provider="cpu"):
+    # Set up providers based on selection
+    if provider == "cpu":
+        providers = ["CPUExecutionProvider"]
+    elif provider == "cuda":
+        providers = [
+            (
+                "CUDAExecutionProvider",
+                {
+                    "arena_extend_strategy": "kNextPowerOfTwo",
+                    "gpu_mem_limit": 2 * 1024 * 1024 * 1024,
+                    "cudnn_conv_algo_search": "EXHAUSTIVE",
+                    "do_copy_in_default_stream": True,
+                },
+            ),
+            "CPUExecutionProvider",
+        ]
+    elif provider == "tensorrt":
+        providers = [
+            (
+                "TensorrtExecutionProvider",
+                {
+                    "trt_fp16_enable": False,
+                    "trt_engine_cache_enable": True,
+                    "trt_engine_cache_path": "./trt_cache",
+                    "trt_timing_cache_enable": True,
+                },
+            ),
+            "CPUExecutionProvider",
+        ]
+
+    try:
+        print(f"Loading ONNX model with providers: {providers}...")
+        session = ort.InferenceSession(model_path, providers=providers)
+        print(f"Using provider: {session.get_providers()[0]}")
+    except Exception as e:
+        print(f"Error creating inference session with providers {providers}: {e}")
+        print("Attempting to fall back to CPU execution...")
+        session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
 
     # Load class names if provided
     class_names = None
@@ -411,7 +446,13 @@ if __name__ == "__main__":
             args.video_width
         )
     elif args.image:
-        run_inference(args.model, args.image, args.classes, args.threshold)
+        run_inference(
+            args.model, 
+            args.image, 
+            args.classes, 
+            args.threshold,
+            args.provider
+        )
     else:
         parser.error("Either --image or --webcam must be specified")
 
