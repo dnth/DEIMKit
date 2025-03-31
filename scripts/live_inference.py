@@ -38,7 +38,7 @@ def generate_colors(num_classes):
     return colors
 
 
-def draw(images, labels, boxes, scores, ratios, paddings, thrh=0.4, class_names=None):
+def draw(images, labels, boxes, scores, ratios, paddings, thrh=0.3, class_names=None):
     result_images = []
 
     # Generate colors for classes
@@ -113,18 +113,23 @@ def process_image(sess, im_pil, class_names=None, input_size=640):
         [[resized_im_pil.size[1], resized_im_pil.size[0]]], dtype=np.int64
     )
 
-    # Convert PIL image to numpy array and normalize to 0-1 range
-    im_data = np.array(resized_im_pil, dtype=np.float32) / 255.0
+    # Get input name from model metadata
+    input_name = sess.get_inputs()[0].name
+    is_preprocessed = input_name == "input_bgr"
 
-    # Transpose from HWC to CHW format (height, width, channels) -> (channels, height, width)
-    im_data = im_data.transpose(2, 0, 1)
-
-    # Add batch dimension
-    im_data = np.expand_dims(im_data, axis=0)
+    if is_preprocessed:
+        # For models with preprocessing, input should be BGR float32 format
+        im_data = cv2.cvtColor(np.array(resized_im_pil), cv2.COLOR_RGB2BGR)
+        im_data = im_data.astype(np.float32)  # Convert to float32
+        im_data = np.expand_dims(im_data.transpose(2, 0, 1), axis=0)
+    else:
+        # For models without preprocessing, normalize to 0-1 range
+        im_data = np.array(resized_im_pil, dtype=np.float32) / 255.0
+        im_data = np.expand_dims(im_data.transpose(2, 0, 1), axis=0)
 
     output = sess.run(
         output_names=None,
-        input_feed={"images": im_data, "orig_target_sizes": orig_size},
+        input_feed={input_name: im_data, "orig_target_sizes": orig_size},
     )
 
     labels, boxes, scores = output
@@ -178,6 +183,10 @@ def process_video(sess, video_path, class_names=None, input_size=640):
     show_provider = True
     provider = sess.get_providers()[0]  # Get the first active provider
 
+    # Get input name from model metadata
+    input_name = sess.get_inputs()[0].name
+    is_preprocessed = input_name == "input_bgr"
+
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
@@ -200,18 +209,19 @@ def process_video(sess, video_path, class_names=None, input_size=640):
             [[resized_frame_pil.size[1], resized_frame_pil.size[0]]], dtype=np.int64
         )
 
-        # Convert PIL image to numpy array and normalize to 0-1 range
-        im_data = np.array(resized_frame_pil, dtype=np.float32) / 255.0
-
-        # Transpose from HWC to CHW format (height, width, channels) -> (channels, height, width)
-        im_data = im_data.transpose(2, 0, 1)
-
-        # Add batch dimension
-        im_data = np.expand_dims(im_data, axis=0)
+        if is_preprocessed:
+            # For models with preprocessing, input should be BGR float32 format
+            im_data = cv2.cvtColor(np.array(resized_frame_pil), cv2.COLOR_RGB2BGR)
+            im_data = im_data.astype(np.float32)  # Convert to float32
+            im_data = np.expand_dims(im_data.transpose(2, 0, 1), axis=0)
+        else:
+            # For models without preprocessing, normalize to 0-1 range
+            im_data = np.array(resized_frame_pil, dtype=np.float32) / 255.0
+            im_data = np.expand_dims(im_data.transpose(2, 0, 1), axis=0)
 
         output = sess.run(
             output_names=None,
-            input_feed={"images": im_data, "orig_target_sizes": orig_size},
+            input_feed={input_name: im_data, "orig_target_sizes": orig_size},
         )
 
         labels, boxes, scores = output
@@ -327,6 +337,10 @@ def process_webcam(sess, device_id=0, class_names=None, input_size=640):
     show_provider = True
     provider = sess.get_providers()[0]
 
+    # Get input name from model metadata
+    input_name = sess.get_inputs()[0].name
+    is_preprocessed = input_name == "input_bgr"
+
     while True:
         # Calculate FPS
         curr_time = time.time()
@@ -350,18 +364,19 @@ def process_webcam(sess, device_id=0, class_names=None, input_size=640):
             [[resized_frame_pil.size[1], resized_frame_pil.size[0]]], dtype=np.int64
         )
 
-        # Convert PIL image to numpy array and normalize to 0-1 range
-        im_data = np.array(resized_frame_pil, dtype=np.float32) / 255.0
-
-        # Transpose from HWC to CHW format (height, width, channels) -> (channels, height, width)
-        im_data = im_data.transpose(2, 0, 1)
-
-        # Add batch dimension
-        im_data = np.expand_dims(im_data, axis=0)
+        if is_preprocessed:
+            # For models with preprocessing, input should be BGR float32 format
+            im_data = cv2.cvtColor(np.array(resized_frame_pil), cv2.COLOR_RGB2BGR)
+            im_data = im_data.astype(np.float32)  # Convert to float32
+            im_data = np.expand_dims(im_data.transpose(2, 0, 1), axis=0)
+        else:
+            # For models without preprocessing, normalize to 0-1 range
+            im_data = np.array(resized_frame_pil, dtype=np.float32) / 255.0
+            im_data = np.expand_dims(im_data.transpose(2, 0, 1), axis=0)
 
         output = sess.run(
             output_names=None,
-            input_feed={"images": im_data, "orig_target_sizes": orig_size},
+            input_feed={input_name: im_data, "orig_target_sizes": orig_size},
         )
 
         labels, boxes, scores = output

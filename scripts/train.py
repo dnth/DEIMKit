@@ -15,7 +15,7 @@ conf = configure_dataset(
     val_batch_size=20,
     num_classes=4,
     remap_mscoco=False,
-    output_dir="./outputs/rock-paper-scissors/deim_hgnetv2_s_30ep_640px_num_queries_100",
+    output_dir="./outputs/rock-paper-scissors/deim_hgnetv2_s_30ep_640px_num_queries_pinto",
 )
 
 trainer = Trainer(conf)
