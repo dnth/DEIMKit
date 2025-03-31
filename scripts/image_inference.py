@@ -162,7 +162,7 @@ def run_inference(model_path, image_path, class_names_path=None, threshold=0.3):
     return result_image
 
 
-def run_inference_webcam(model_path, class_names_path=None, provider="cpu", threshold=0.3):
+def run_inference_webcam(model_path, class_names_path=None, provider="cpu", threshold=0.3, video_width=640):
     """Run real-time object detection on webcam feed."""
     # Set up providers based on selection
     if provider == "cpu":
@@ -221,6 +221,15 @@ def run_inference_webcam(model_path, class_names_path=None, provider="cpu", thre
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         raise RuntimeError("Failed to open webcam")
+    
+    # Set webcam resolution
+    original_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    original_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    aspect_ratio = original_height / original_width
+    new_height = int(video_width * aspect_ratio)
+    
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, new_height)
 
     try:
         while True:
@@ -369,6 +378,12 @@ if __name__ == "__main__":
         "--webcam", action="store_true", help="Use webcam input"
     )
     parser.add_argument(
+        "--video-width", 
+        type=int, 
+        default=640,
+        help="Width of the video input in pixels (default: 640). Height will be adjusted to maintain aspect ratio"
+    )
+    parser.add_argument(
         "--classes", type=str, help="Path to class names file (optional)"
     )
     parser.add_argument(
@@ -388,7 +403,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.webcam:
-        run_inference_webcam(args.model, args.classes, args.provider, args.threshold)
+        run_inference_webcam(
+            args.model, 
+            args.classes, 
+            args.provider, 
+            args.threshold,
+            args.video_width
+        )
     elif args.image:
         run_inference(args.model, args.image, args.classes, args.threshold)
     else:
