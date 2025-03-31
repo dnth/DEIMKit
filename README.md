@@ -260,7 +260,7 @@ For video inference, specify the path to the video file as the input. Output vid
 ```bash
 python scripts/live_inference.py \
     --model model.onnx           # Path to the ONNX model file
-    --input video.mp4           # Path to the input video file
+    --video video.mp4           # Path to the input video file
     --classes classes.txt       # Path to the classes file with each name on a new row
     --video-width 320          # Input size for the model
     --provider cpu             # Execution provider (cpu/cuda/tensorrt)
