@@ -250,40 +250,38 @@ If you would like to use the CUDA backend, you can install the `onnxruntime-gpu`
 For video inference, specify the path to the video file as the input. Output video will be saved as `onnx_result.mp4` in the current directory.
 
 ```bash
-python scripts/live_inference.py 
-    --onnx model.onnx           # Path to the ONNX model file
+python scripts/live_inference.py \
+    --model model.onnx           # Path to the ONNX model file
     --input video.mp4           # Path to the input video file
-    --class-names classes.txt   # Path to the classes file with each name on a new row
-    --input-size 320            # Input size for the model
+    --classes classes.txt       # Path to the classes file with each name on a new row
+    --video-width 320          # Input size for the model
+    --provider cpu             # Execution provider (cpu/cuda/tensorrt)
+    --threshold 0.3           # Detection confidence threshold
 ```
 
-The following is a demo of video inference after training for about 50 epochs on the vehicles dataset with image size 320x320.
-
-https://github.com/user-attachments/assets/5066768f-c97e-4999-af81-ffd29d88f529
-
-
-You can also run live inference on a webcam by setting the `webcam` flag.
+You can also run live inference on a webcam by setting the `--webcam` flag.
 
 ```bash
-python scripts/live_inference.py 
-    --onnx model.onnx           # Path to the ONNX model file
+python scripts/live_inference.py \
+    --model model.onnx          # Path to the ONNX model file
     --webcam                    # Use webcam as input source
-    --class-names classes.txt   # Path to the classes file. Each class name should be on a new line.
-    --input-size 320            # Input size for the model
+    --classes classes.txt       # Path to the classes file. Each class name should be on a new line
+    --video-width 720          # Input size for the model
+    --provider tensorrt        # Execution provider (cpu/cuda/tensorrt)
+    --threshold 0.3           # Detection confidence threshold
 ```
-The following is a demo of webcam inference after training on the rock paper scissors dataset 640x640 resolution image.
-
-https://github.com/user-attachments/assets/6e5dbb15-4e3a-45a3-997e-157bb9370146
-
 
 For image inference, specify the path to the image file as the input.
+
 ```bash
-python scripts/live_inference.py 
-    --onnx model.onnx           # Path to the ONNX model file
+python scripts/live_inference.py \
+    --model model.onnx          # Path to the ONNX model file
     --input image.jpg           # Path to the input image file
-    --class-names classes.txt   # Path to the classes file. Each class name should be on a new line.
-    --input-size 320            # Input size for the model
+    --classes classes.txt       # Path to the classes file. Each class name should be on a new line
+    --provider cpu             # Execution provider (cpu/cuda/tensorrt)
+    --threshold 0.3           # Detection confidence threshold
 ```
+
 The following is a demo of image inference
 
 ![image](assets/sample_result_image_1.jpg)
