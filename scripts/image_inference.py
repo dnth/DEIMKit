@@ -1,5 +1,6 @@
 import colorsys
-
+import time
+import torch
 import cv2
 import numpy as np
 import onnxruntime as ort
@@ -162,11 +163,52 @@ def run_inference(model_path, image_path, class_names_path=None):
     return result_image
 
 
-def run_inference_webcam(model_path, class_names_path=None):
+def run_inference_webcam(model_path, class_names_path=None, provider="cpu"):
     """Run real-time object detection on webcam feed."""
-    print(f"Loading ONNX model from {model_path}...")
-    session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
-    print(f"Using provider: {session.get_providers()[0]}")
+    # Set up providers based on selection
+    if provider == "cpu":
+        providers = ["CPUExecutionProvider"]
+    elif provider == "cuda":
+        providers = [
+            (
+                "CUDAExecutionProvider",
+                {
+                    "arena_extend_strategy": "kNextPowerOfTwo",
+                    "gpu_mem_limit": 2 * 1024 * 1024 * 1024,
+                    "cudnn_conv_algo_search": "EXHAUSTIVE",
+                    "do_copy_in_default_stream": True,
+                },
+            ),
+            "CPUExecutionProvider",
+        ]
+    elif provider == "tensorrt":
+        providers = [
+            (
+                "TensorrtExecutionProvider",
+                {
+                    "trt_fp16_enable": False,
+                    "trt_engine_cache_enable": True,
+                    "trt_engine_cache_path": "./trt_cache",
+                    "trt_timing_cache_enable": True,
+                },
+            ),
+            "CPUExecutionProvider",
+        ]
+
+    try:
+        print(f"Loading ONNX model with providers: {providers}...")
+        session = ort.InferenceSession(model_path, providers=providers)
+        print(f"Using provider: {session.get_providers()[0]}")
+    except Exception as e:
+        print(f"Error creating inference session with providers {providers}: {e}")
+        print("Attempting to fall back to CPU execution...")
+        session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+
+    # Variables for FPS calculation
+    prev_time = time.time()
+    curr_time = 0
+    fps_display = 0
+    show_provider = True
 
     # Load class names if provided
     class_names = None
@@ -189,6 +231,12 @@ def run_inference_webcam(model_path, class_names_path=None):
             if not ret:
                 print("Failed to grab frame")
                 break
+
+            # Calculate FPS
+            curr_time = time.time()
+            if curr_time - prev_time > 0:  # Avoid division by zero
+                fps_display = 1 / (curr_time - prev_time)
+            prev_time = curr_time
 
             # Calculate padding to make the frame square
             height, width = frame.shape[:2]
@@ -248,12 +296,68 @@ def run_inference_webcam(model_path, class_names_path=None):
             # Convert back to BGR for display
             result_bgr = cv2.cvtColor(result_image, cv2.COLOR_RGB2BGR)
             
+            # Add FPS and provider display
+            fps_text = f"FPS: {fps_display:.1f}"
+            text_size = cv2.getTextSize(fps_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+            text_x = result_bgr.shape[1] - text_size[0] - 10
+            text_y = 30
+
+            # Draw FPS background rectangle
+            cv2.rectangle(
+                result_bgr,
+                (text_x - 5, text_y - text_size[1] - 5),
+                (text_x + text_size[0] + 5, text_y + 5),
+                (139, 0, 0),
+                -1,
+            )
+
+            # Draw FPS text
+            cv2.putText(
+                result_bgr,
+                fps_text,
+                (text_x, text_y),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (255, 255, 255),
+                2,
+            )
+
+            # Add provider display
+            if show_provider:
+                provider_text = f"Provider: {session.get_providers()[0]}"
+                text_size = cv2.getTextSize(provider_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+                text_x = (result_bgr.shape[1] - text_size[0]) // 2
+                text_y = result_bgr.shape[0] - 20
+
+                # Draw provider background rectangle
+                cv2.rectangle(
+                    result_bgr,
+                    (text_x - 5, text_y - text_size[1] - 5),
+                    (text_x + text_size[0] + 5, text_y + 5),
+                    (139, 0, 0),
+                    -1,
+                )
+
+                # Draw provider text
+                cv2.putText(
+                    result_bgr,
+                    provider_text,
+                    (text_x, text_y),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.8,
+                    (255, 255, 255),
+                    2,
+                )
+
             # Display the result
             cv2.imshow("Webcam Detection", result_bgr)
 
-            # Break loop on 'q' press
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            # Handle key presses
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
                 break
+            elif key == ord('p'):
+                show_provider = not show_provider
 
     finally:
         cap.release()
@@ -276,11 +380,18 @@ if __name__ == "__main__":
     parser.add_argument(
         "--classes", type=str, help="Path to class names file (optional)"
     )
+    parser.add_argument(
+        "--provider",
+        type=str,
+        choices=["cpu", "cuda", "tensorrt"],
+        default="cpu",
+        help="ONNXRuntime provider to use for inference",
+    )
 
     args = parser.parse_args()
 
     if args.webcam:
-        run_inference_webcam(args.model, args.classes)
+        run_inference_webcam(args.model, args.classes, args.provider)
     elif args.image:
         run_inference(args.model, args.image, args.classes)
     else:
