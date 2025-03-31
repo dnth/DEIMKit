@@ -345,7 +345,7 @@ pixi run -e cpu live-inference --onnx model.onnx --input video.mp4 --class-names
 
 Launch Gradio app
 ```bash
-pixi run -e cuda gradio-demo
+pixi run gradio-demo --model "best_prep.onnx" --classes "classes.txt" --examples "Rock Paper Scissors SXSW.v14i.coco/test"
 ```
 
 ```bash
