@@ -260,6 +260,20 @@ python scripts/gradio_demo.py \
 Run live inference on a video, image or webcam using ONNXRuntime. This runs on CPU by default.
 If you would like to use the CUDA backend, you can install the `onnxruntime-gpu` package and uninstall the `onnxruntime` package.
 
+For running inference on a webcam, set the `--webcam` flag.
+
+```bash
+python scripts/live_inference.py 
+    --model model.onnx          # Path to the ONNX model file
+    --webcam                    # Use webcam as input source
+    --classes classes.txt       # Path to the classes file with each name on a new row
+    --video-width 720           # Input size for the model
+    --provider tensorrt         # Execution provider (cpu/cuda/tensorrt)
+    --threshold 0.3             # Detection confidence threshold
+```
+
+
+
 For video inference, specify the path to the video file as the input. Output video will be saved as `onnx_result.mp4` in the current directory.
 
 ```bash
@@ -270,18 +284,6 @@ python scripts/live_inference.py
     --video-width 320            # Input size for the model
     --provider cpu               # Execution provider (cpu/cuda/tensorrt)
     --threshold 0.3              # Detection confidence threshold
-```
-
-You can also run live inference on a webcam by setting the `--webcam` flag.
-
-```bash
-python scripts/live_inference.py 
-    --model model.onnx          # Path to the ONNX model file
-    --webcam                    # Use webcam as input source
-    --classes classes.txt       # Path to the classes file with each name on a new row
-    --video-width 720           # Input size for the model
-    --provider tensorrt         # Execution provider (cpu/cuda/tensorrt)
-    --threshold 0.3             # Detection confidence threshold
 ```
 
 For image inference, specify the path to the image file as the input.
