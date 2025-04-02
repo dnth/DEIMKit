@@ -20,30 +20,30 @@
     <table>
         <tr>
             <td align="center">
-                <a href="#why-deimkit">🤔 Why DEIMKit?</a>
+                <a href="#-why-deimkit">🤔 Why DEIMKit?</a>
             </td>
             <td align="center">
-                <a href="#supported-features">🌟 Features</a>
+                <a href="#-supported-features">🌟 Features</a>
             </td>
             <td align="center">
-                <a href="#installation">📦 Installation</a>
+                <a href="#-installation">📦 Installation</a>
             </td>
             <td align="center">
-                <a href="#usage">🚀 Usage</a>
+                <a href="#-usage">🚀 Usage</a>
             </td>
         </tr>
         <tr>
             <td align="center">
-                <a href="#inference">💡 Inference</a>
+                <a href="#-inference">💡 Inference</a>
             </td>
             <td align="center">
-                <a href="#training">🏋️ Training</a>
+                <a href="#-training">🏋️ Training</a>
             </td>
             <td align="center">
-                <a href="#export">💾 Export</a>
+                <a href="#-export">💾 Export</a>
             </td>
              <td align="center">
-                <a href="#disclaimer">⚠️ Disclaimer</a>
+                <a href="#-disclaimer">⚠️ Disclaimer</a>
             </td>
         </tr>
     </table>
