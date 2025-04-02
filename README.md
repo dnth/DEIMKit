@@ -273,6 +273,26 @@ python scripts/live_inference.py
 ```
 
 
+https://github.com/user-attachments/assets/bd98eb1e-feff-4b53-9fa9-d4aff6a724e0
+
+
+
+https://github.com/user-attachments/assets/31a8644e-e0c6-4bba-9d4f-857a3d0b53e1
+
+
+
+https://github.com/user-attachments/assets/aa267f05-5dbd-4824-973c-62f3b8f59c80
+
+
+
+https://github.com/user-attachments/assets/3d0c04c0-645a-4d54-86c0-991930491113
+
+
+
+https://github.com/user-attachments/assets/f4afff9c-3e6d-4965-ab86-0d4de7ce1a44
+
+
+
 
 For video inference, specify the path to the video file as the input. Output video will be saved as `onnx_result.mp4` in the current directory.
 
