@@ -306,6 +306,8 @@ python scripts/live_inference.py
     --provider cpu               # Execution provider (cpu/cuda/tensorrt)
     --threshold 0.3              # Detection confidence threshold
 ```
+https://github.com/user-attachments/assets/6bc1dc6a-a223-4220-954d-2dab5c75b4a8
+
 
 For image inference, specify the path to the image file as the input.
 
@@ -317,6 +319,9 @@ python scripts/live_inference.py
     --provider cpu              # Execution provider (cpu/cuda/tensorrt)
     --threshold 0.3             # Detection confidence threshold
 ```
+
+
+
 
 The following is a demo of image inference
 
