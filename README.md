@@ -12,6 +12,44 @@
 <p>DEIMKit is a Python wrapper for <a href="https://github.com/ShihuaHuang95/DEIM">DEIM: DETR with Improved Matching for Fast Convergence</a>. Check out the original repo for more details.</p>
 </div>
 
+
+
+<!-- Add HTML Table of Contents -->
+<div align="center">
+    <br />
+    <table>
+        <tr>
+            <td align="center">
+                <a href="#why-deimkit">🤔 Why DEIMKit?</a>
+            </td>
+            <td align="center">
+                <a href="#supported-features">🌟 Features</a>
+            </td>
+            <td align="center">
+                <a href="#installation">📦 Installation</a>
+            </td>
+            <td align="center">
+                <a href="#usage">🚀 Usage</a>
+            </td>
+        </tr>
+        <tr>
+            <td align="center">
+                <a href="#inference">💡 Inference</a>
+            </td>
+            <td align="center">
+                <a href="#training">🏋️ Training</a>
+            </td>
+            <td align="center">
+                <a href="#export">💾 Export</a>
+            </td>
+             <td align="center">
+                <a href="#disclaimer">⚠️ Disclaimer</a>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<br />
 <div align="center">
   <a href="https://colab.research.google.com/github/dnth/DEIMKit/blob/main/nbs/colab-quickstart.ipynb">
     <img src="https://img.shields.io/badge/Open%20In-Colab-blue?style=for-the-badge&logo=google-colab" alt="Open In Colab"/>
@@ -22,23 +60,22 @@
 </div>
 </div>
 
-
-## Why DEIMKit?
+## 🤔 Why DEIMKit?
 
 - **Pure Python Configuration** - No complicated YAML files, just clean Python code
 - **Cross-Platform Simplicity** - Single command installation on Linux, macOS, and Windows
 - **Intuitive API** - Load, train, predict, export in just a few lines of code
 
-## Supported Features
+## 🌟 Supported Features
 
 - [x] Inference
 - [x] Training
 - [x] Export
 
 
-## Installation
+## 📦 Installation
 
-### Using pip
+### 📥 Using pip
 If you're installing using pip, install [torch](https://pytorch.org/get-started/locally/) and torchvision as a pre-requisite.
 
 Next, install the package.
@@ -52,7 +89,7 @@ Stable version
 pip install git+https://github.com/dnth/DEIM.git@v0.1.1
 ```
 
-### Using Pixi
+### 🔌 Using Pixi
 
 > [!TIP] 
 > I recommend using [Pixi](https://pixi.sh) to run this package. Pixi makes it easy to install the right version of Python and the dependencies to run this package on any platform!
@@ -80,7 +117,7 @@ This will download a toy dataset with 8 images, and train a model on it for 3 ep
 
 If this runs without any issues, you've got a working Python environment with all the dependencies installed. This also installs DEIMKit in editable mode for development. See the [pixi cheatsheet](#-pixi-cheat-sheet) below for more. 
 
-## Usage
+## 🚀 Usage
 
 List models supported by DEIMKit
 
@@ -98,7 +135,7 @@ list_models()
  'deim_hgnetv2_x']
 ```
 
-### Inference
+### 💡 Inference
 
 Load a pretrained model by the original authors
 
@@ -152,7 +189,7 @@ Stomata Dataset
 
 See the [demo notebook on using pretrained models](nbs/pretrained-model-inference.ipynb) and [custom model inference](nbs/custom-model-inference.ipynb) for more details.
 
-### Training
+### 🏋️ Training
 
 DEIMKit provides a simple interface for training your own models.
 
@@ -220,7 +257,7 @@ Navigate to the http://localhost:6006/ in your browser to view the training prog
 
 ![alt text](assets/tensorboard.png)
 
-### Export
+### 💾 Export
 
 ```python
 from deimkit.exporter import Exporter
@@ -240,7 +277,7 @@ output_path = exporter.to_onnx(
 > 
 > ![onnx model](assets/exported_onnx.png)
 
-### Gradio App
+### 🖥️ Gradio App
 Run a Gradio app to interact with your model. The app will accept raw BGR images of any size. It will also handle the preprocessing internally using the exported ONNX model.
 
 ```bash
@@ -256,9 +293,9 @@ python scripts/gradio_demo.py \
 > This means you can use any image size you want. Play around with the input size slider to see what works best for your model. 
 > Some objects are visible even at lower input sizes, this means you can use a lower input size to speed up inference.
 
-### Live Inference
+### 🎥 Live Inference
 Run live inference on a video, image or webcam using ONNXRuntime. This runs on CPU by default.
-If you would like to use the CUDA backend, you can install the `onnxruntime-gpu` package and uninstall the `onnxruntime` package.
+If you would like to use the CUDA backend, install the `onnxruntime-gpu` package and uninstall the `onnxruntime` package.
 
 For running inference on a webcam, set the `--webcam` flag.
 
@@ -350,7 +387,7 @@ The following is a demo of image inference
 > If you want to use the CPU, replace `cuda` with `cpu` in the command above.
 
 
-## Pixi Cheat Sheet
+## 📝 Pixi Cheat Sheet
 Here are some useful tasks you can run with Pixi.
 
 Run a quickstart
@@ -408,5 +445,5 @@ pixi run export --config config.yml --checkpoint model.pth --output model.onnx
 
 
 
-## Disclaimer
+## ⚠️ Disclaimer
 I'm not affiliated with the original DEIM authors. I just found the model interesting and wanted to try it out. The changes made here are of my own. Please cite and star the original repo if you find this useful.
