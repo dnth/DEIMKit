@@ -274,21 +274,23 @@ python scripts/live_inference.py
 
 Because we are handling the preprocessing internally in the ONNX model, the input size is not limited to the original 640x640. You can use any input size you want for inference. Here are some examples of inference on a webcam at different video widths. The model was trained on 640x640 images. Integrating the preprocessing internally in the ONNX model also lets us run inference at very high FPS. The following is a model I trained on a custom dataset using the deim_hgnetv2_s model.
 
+Webcam video width at 1920x1080 pixels:
+
 https://github.com/user-attachments/assets/bd98eb1e-feff-4b53-9fa9-d4aff6a724e0
 
-
+Webcam video width at 1280x720 pixels:
 
 https://github.com/user-attachments/assets/31a8644e-e0c6-4bba-9d4f-857a3d0b53e1
 
-
+Webcam video width at 848x480 pixels:
 
 https://github.com/user-attachments/assets/aa267f05-5dbd-4824-973c-62f3b8f59c80
 
-
+Webcam video width at 640x480 pixels:
 
 https://github.com/user-attachments/assets/3d0c04c0-645a-4d54-86c0-991930491113
 
-
+Webcam video width at 320x240 pixels:
 
 https://github.com/user-attachments/assets/f4afff9c-3e6d-4965-ab86-0d4de7ce1a44
 
