@@ -236,7 +236,7 @@ output_path = exporter.to_onnx(
 ```
 
 > [!NOTE]
-> The exported model will accept raw BGR images of any size. It will also handle the preprocessing internally.
+> The exported model will accept raw BGR images of any size. It will also handle the preprocessing internally. Credit to [PINTO0309](https://github.com/PINTO0309/DEIM) for the implementation.
 > 
 > ![onnx model](assets/exported_onnx.png)
 
