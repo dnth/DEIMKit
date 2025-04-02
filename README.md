@@ -241,7 +241,7 @@ output_path = exporter.to_onnx(
 > ![onnx model](assets/exported_onnx.png)
 
 ### Gradio App
-Run a Gradio app to interact with your model.
+Run a Gradio app to interact with your model. The app will accept raw BGR images of any size. It will also handle the preprocessing internally using the exported ONNX model.
 
 ```bash
 python scripts/gradio_demo.py \
