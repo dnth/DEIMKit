@@ -270,6 +270,7 @@ Navigate to the http://localhost:6006/ in your browser to view the training prog
 ![alt text](assets/tensorboard.png)
 
 ### 💾 Export
+Currently, the export function is only used for exporting the model to ONNX and run it using ONNXRuntime (see [Live Inference](#-live-inference) for more details). I think one could get pretty far with this even on a low resource machine. Drop an issue if you think this should be extended to other formats.
 
 ```python
 from deimkit.exporter import Exporter
@@ -288,6 +289,29 @@ output_path = exporter.to_onnx(
 > The exported model will accept raw BGR images of any size. It will also handle the preprocessing internally. Credit to [PINTO0309](https://github.com/PINTO0309/DEIM) for the implementation.
 > 
 > ![onnx model](assets/exported_onnx.png)
+
+> [!TIP]
+> If you want to export to OpenVINO you can do so directly from the ONNX model.
+> 
+>
+> ```python
+> import onnx
+> from onnx import helper
+> 
+> model = onnx.load("best.onnx")
+>
+> # Change the mode attribute of the GridSample node to bilinear as this operation is not supported in OpenVINO
+> for node in model.graph.node:
+>     if node.op_type == 'GridSample':
+>         for i, attr in enumerate(node.attribute):
+>             if attr.name == 'mode' and attr.s == b'linear':
+>                 # Replace 'linear' with 'bilinear'
+>                 node.attribute[i].s = b'bilinear'
+>       
+> # Save the modified model
+> onnx.save(model, "best_prep_openvino.onnx")
+> ```
+> You can then use the live inference script to run inference on the OpenVINO model.
 
 ### 🖥️ Gradio App
 Run a Gradio app to interact with your model. The app will accept raw BGR images of any size. It will also handle the preprocessing internally using the exported ONNX model.
