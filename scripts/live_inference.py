@@ -116,7 +116,7 @@ def run_inference(
             (
                 "TensorrtExecutionProvider",
                 {
-                    "trt_fp16_enable": False,
+                    "trt_fp16_enable": True,
                     "trt_engine_cache_enable": True,
                     "trt_engine_cache_path": "./trt_cache",
                     "trt_timing_cache_enable": True,
@@ -351,7 +351,31 @@ def run_inference_webcam(
             # No need to convert back to BGR since we're using the original frame
             result_bgr = result_image
 
-            # Add FPS and provider display
+            # Add video width display at top left with dark green background
+            width_text = f"Width: {int(actual_width)}px"
+            text_size = cv2.getTextSize(width_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+            
+            # Draw dark green background rectangle
+            cv2.rectangle(
+                result_bgr,
+                (5, 5),  # Slight padding from corner
+                (text_size[0] + 15, 35),  # Add padding around text
+                (0, 100, 0),  # Dark green in BGR
+                -1,  # Filled rectangle
+            )
+
+            # Draw text
+            cv2.putText(
+                result_bgr,
+                width_text,
+                (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (255, 255, 255),  # White text
+                2,
+            )
+
+            # Add FPS display (existing code)
             fps_text = f"FPS: {fps_display:.1f}"
             text_size = cv2.getTextSize(fps_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
             text_x = result_bgr.shape[1] - text_size[0] - 10
@@ -390,7 +414,7 @@ def run_inference_webcam(
                 result_bgr,
                 (text_x - 5, text_y - text_size[1] - 5),
                 (text_x + text_size[0] + 5, text_y + 5),
-                (139, 0, 0),
+                (0, 0, 139),
                 -1,
             )
 
@@ -571,7 +595,31 @@ def run_inference_video(
                 class_names=class_names,
             )
 
-            # Add FPS counter and provider info (matching webcam style)
+            # Add video width display at top left with dark green background
+            width_text = f"Width: {frame_width}px"
+            text_size = cv2.getTextSize(width_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+            
+            # Draw dark green background rectangle
+            cv2.rectangle(
+                result_image,
+                (5, 5),  # Slight padding from corner
+                (text_size[0] + 15, 35),  # Add padding around text
+                (0, 100, 0),  # Dark green in BGR
+                -1,  # Filled rectangle
+            )
+
+            # Draw text
+            cv2.putText(
+                result_image,
+                width_text,
+                (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (255, 255, 255),  # White text
+                2,
+            )
+
+            # Add FPS counter and provider info (existing code)
             fps_text = f"FPS: {fps_display:.1f}"
             text_size = cv2.getTextSize(fps_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
             text_x = result_image.shape[1] - text_size[0] - 10

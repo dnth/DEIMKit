@@ -235,6 +235,11 @@ output_path = exporter.to_onnx(
 )
 ```
 
+> [!NOTE]
+> The exported model will accept raw BGR images of any size. It will also handle the preprocessing internally.
+> 
+> ![onnx model](assets/exported_onnx.png)
+
 ### Gradio App
 Run a Gradio app to interact with your model.
 

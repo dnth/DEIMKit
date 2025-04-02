@@ -77,7 +77,7 @@ class Exporter:
         simplify: bool = True,
         dynamic_batch: bool = True,
         dynamic_input_size: bool = True,
-        include_preprocessing: bool = False,
+        include_preprocessing: bool = True,
         fp16: bool = False,
         opset_version: int = 20,
         device: Optional[str] = None,
