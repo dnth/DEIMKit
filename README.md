@@ -272,7 +272,7 @@ python scripts/live_inference.py
     --threshold 0.3             # Detection confidence threshold
 ```
 
-Because we are handling the preprocessing internally in the ONNX model, the input size is not limited to the original 640x640. You can use any input size you want for inference. The model was trained on 640x640 images. Integrating the preprocessing internally in the ONNX model also lets us run inference at very high FPS. The following is a model I trained on a custom dataset using the deim_hgnetv2_s model.
+Because we are handling the preprocessing internally in the ONNX model, the input size is not limited to the original 640x640. You can use any input size you want for inference. The model was trained on 640x640 images. Integrating the preprocessing internally in the ONNX model also lets us run inference at very high FPS as it uses more efficient onnx operators. The following is a model I trained on a custom dataset using the deim_hgnetv2_s model.
 
 Here are some examples of inference on a webcam at different video widths.
 
