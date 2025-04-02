@@ -308,6 +308,10 @@ python scripts/live_inference.py
 ```
 https://github.com/user-attachments/assets/6bc1dc6a-a223-4220-954d-2dab5c75b4a8
 
+The following is an inference using the pre-trained model `deim_hgnetv2_x` trained on COCO. 
+
+https://github.com/user-attachments/assets/77070ea4-8407-4648-ade3-01cacd77b51b
+
 
 For image inference, specify the path to the image file as the input.
 
