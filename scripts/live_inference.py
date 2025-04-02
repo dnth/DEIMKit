@@ -512,10 +512,15 @@ def run_inference_video(
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    # Create video writer
+    # Calculate output dimensions based on video_width
+    scale = video_width / frame_width
+    output_width = video_width
+    output_height = int(frame_height * scale)
+
+    # Create video writer with new dimensions
     output_path = "detection_output.mp4"
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    out = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
+    out = cv2.VideoWriter(output_path, fourcc, fps, (output_width, output_height))
 
     # Initialize FPS calculation
     prev_time = time.time()
@@ -595,8 +600,12 @@ def run_inference_video(
                 class_names=class_names,
             )
 
+            # Before writing the frame, resize it
+            result_image = cv2.resize(result_image, (output_width, output_height))
+            out.write(result_image)
+
             # Add video width display at top left with dark green background
-            width_text = f"Width: {frame_width}px"
+            width_text = f"Width: {output_width}px"
             text_size = cv2.getTextSize(width_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
             
             # Draw dark green background rectangle
@@ -672,9 +681,6 @@ def run_inference_video(
                 (255, 255, 255),
                 2,
             )
-
-            # Write frame to output video
-            out.write(result_image)
 
             # Display frame (optional)
             cv2.imshow("Video Detection", result_image)

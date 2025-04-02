@@ -71,3 +71,30 @@ model = load_model(
 
 logger.info("Testing predictions...")
 predictions = model.predict("./data/coco8-converted/000000000009.jpg")
+
+logger.info("Exporting pretrained model to ONNX...")
+
+coco_classes = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
+    'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear',
+    'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
+    'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork',
+    'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake',
+    'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+    'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+]
+
+model = load_model("deim_hgnetv2_n", class_names=coco_classes)
+model.cfg.save("./checkpoints/deim_hgnetv2_n.yml")
+
+from deimkit.exporter import Exporter
+from deimkit.config import Config
+
+config = Config("./checkpoints/deim_hgnetv2_n.yml")
+exporter = Exporter(config)
+
+output_path = exporter.to_onnx(
+    checkpoint_path="./checkpoints/deim_hgnetv2_n.pth",
+    output_path="./checkpoints/deim_hgnetv2_n.onnx"
+)
+
+logger.info(f"ONNX model saved to {output_path}")

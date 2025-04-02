@@ -3,6 +3,7 @@ outputs/
 trt_cache/
 # Dataset
 dataset_collections/
+checkpoints/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

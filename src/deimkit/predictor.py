@@ -23,7 +23,7 @@ MODEL_CHECKPOINT_URLS = {
     "deim_hgnetv2_x": "1dPtbgtGgq1Oa7k_LgH1GXPelg1IVeu0j",  # XLarge model
 }
 
-DEFAULT_CACHE_DIR = os.path.expanduser("~/.cache/deim/checkpoints")
+DEFAULT_CACHE_DIR = os.path.expanduser("./checkpoints")
 DEFAULT_IMAGE_SIZE = (640, 640)
 DEFAULT_MEAN = [0.485, 0.456, 0.406]
 DEFAULT_STD = [0.229, 0.224, 0.225]
