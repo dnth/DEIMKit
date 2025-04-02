@@ -23,7 +23,7 @@
                 <a href="#-why-deimkit">🤔 Why DEIMKit?</a>
             </td>
             <td align="center">
-                <a href="#-supported-features">🌟 Features</a>
+                <a href="#-key-features">🌟 Key Features</a>
             </td>
             <td align="center">
                 <a href="#-installation">📦 Installation</a>
@@ -66,12 +66,24 @@
 - **Cross-Platform Simplicity** - Single command installation on Linux, macOS, and Windows
 - **Intuitive API** - Load, train, predict, export in just a few lines of code
 
-## 🌟 Supported Features
+## 🌟 Key Features
 
-- [x] Inference
-- [x] Training
-- [x] Export
-
+*   **💡 Inference**
+    *   [x] Single Image & Batch Prediction
+    *   [x] Load Pretrained & Custom Models
+    *   [x] Built-in Result Visualization
+    *   [x] Live ONNX Inference (Webcam, Video, Image)
+*   **🏋️ Training**
+    *   [x] Single & Multi-GPU Training
+    *   [x] Custom Dataset Support (COCO Format)
+    *   [x] Flexible Configuration via Pure Python
+*   **💾 Export**
+    *   [x] Export Trained Models to ONNX
+    *   [x] ONNX Model with Integrated Preprocessing
+*   **🛠️ Utilities & Demos**
+    *   [x] Cross-Platform Support (Linux, macOS, Windows)
+    *   [x] Pixi Environment Management Integration
+    *   [x] Interactive Gradio Demo Script
 
 ## 📦 Installation
 
