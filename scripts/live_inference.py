@@ -1,5 +1,6 @@
 import colorsys
 import time
+from typing import Optional
 
 import cv2
 import numpy as np
@@ -19,9 +20,26 @@ def generate_colors(num_classes):
 
 
 def draw_boxes(
-    image, labels, boxes, scores, ratio, padding, threshold=0.3, class_names=None
-):
-    """Draw bounding boxes on the image."""
+    image: np.ndarray,
+    labels: np.ndarray,
+    boxes: np.ndarray,
+    scores: np.ndarray,
+    threshold: float = 0.3,
+    class_names: Optional[list[str]] = None
+) -> np.ndarray:
+    """Draw bounding boxes on the image with detection results.
+    
+    Args:
+        image: Input image array in BGR format
+        labels: Array of class labels
+        boxes: Array of bounding box coordinates [x1, y1, x2, y2]
+        scores: Array of confidence scores
+        threshold: Minimum confidence threshold for displaying detections
+        class_names: Optional list of class names for labels
+        
+    Returns:
+        np.ndarray: Image with drawn bounding boxes in BGR format
+    """
     # Generate colors for classes
     num_classes = len(class_names) if class_names else 91
     colors = generate_colors(num_classes)
@@ -146,14 +164,14 @@ def run_inference(
 
     # Load image
     image = cv2.imread(image_path)  # Load as BGR
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
     original_image = image.copy()
 
+    # Prepare input data (maintain BGR format)
     im_data = np.ascontiguousarray(
         image.transpose(2, 0, 1),  # HWC to CHW format
         dtype=np.float32,
     )
-    im_data = np.expand_dims(im_data, axis=0)  # Add batch dimension
+    im_data = np.expand_dims(im_data, axis=0)
     orig_size = np.array([[image.shape[0], image.shape[1]]], dtype=np.int64)
 
     print(f"Image frame shape: {image.shape}")
@@ -179,22 +197,17 @@ def run_inference(
         labels[0],
         boxes[0],
         scores[0],
-        1.0,  # No ratio needed since we're not resizing
-        (0, 0),  # No padding needed
         threshold=threshold,
         class_names=class_names,
     )
 
-    # Save and show result
+    # Save and show result (no color conversion needed)
     output_path = "detection_result.jpg"
-    result_bgr = cv2.cvtColor(
-        result_image, cv2.COLOR_RGB2BGR
-    )  # Convert back to BGR for OpenCV
-    cv2.imwrite(output_path, result_bgr)
+    cv2.imwrite(output_path, result_image)
     print(f"Detection complete. Result saved to {output_path}")
 
     # Display the result
-    cv2.imshow("Detection Result", result_bgr)
+    cv2.imshow("Detection Result", result_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
@@ -283,14 +296,14 @@ def run_inference_webcam(
 
     try:
         while True:
-            ret, frame = cap.read()
+            ret, frame = cap.read()  # Frame is already in BGR
             if not ret:
                 print("Failed to grab frame")
                 break
 
             # Calculate FPS
             current_time = time.time()
-            if current_time - prev_time > 0:  # Avoid division by zero
+            if current_time - prev_time > 0:
                 fps_display = 1 / (current_time - prev_time)
             prev_time = current_time
 
@@ -304,22 +317,19 @@ def run_inference_webcam(
             y_offset = (640 - new_height) // 2
             x_offset = (640 - new_width) // 2
 
-            # Create model input with padding
+            # Create model input with padding (maintain BGR)
             model_input = np.zeros((640, 640, 3), dtype=np.uint8)
             model_input[
                 y_offset : y_offset + new_height, x_offset : x_offset + new_width
             ] = cv2.resize(frame, (new_width, new_height))
 
-            # Convert BGR to RGB for model input
-            image = cv2.cvtColor(model_input, cv2.COLOR_BGR2RGB)
-
             # Prepare input data
             im_data = np.ascontiguousarray(
-                image.transpose(2, 0, 1),
+                model_input.transpose(2, 0, 1),
                 dtype=np.float32,
             )
             im_data = np.expand_dims(im_data, axis=0)
-            orig_size = np.array([[640, 640]], dtype=np.int64)  # Use padded size
+            orig_size = np.array([[640, 640]], dtype=np.int64)
 
             # Get input name and run inference
             input_name = session.get_inputs()[0].name
@@ -338,18 +348,13 @@ def run_inference_webcam(
 
             # Draw bounding boxes on the original frame
             result_image = draw_boxes(
-                frame,  # Use original frame
+                frame,  # Use original frame (BGR)
                 labels[0],
                 boxes,
                 scores[0],
-                1.0,  # No additional scaling needed
-                (0, 0),  # No additional padding needed
                 threshold=threshold,
                 class_names=class_names,
             )
-
-            # No need to convert back to BGR since we're using the original frame
-            result_bgr = result_image
 
             # Add video width display at top left with dark green background
             width_text = f"Width: {int(actual_width)}px"
@@ -357,7 +362,7 @@ def run_inference_webcam(
             
             # Draw dark green background rectangle
             cv2.rectangle(
-                result_bgr,
+                result_image,
                 (5, 5),  # Slight padding from corner
                 (text_size[0] + 15, 35),  # Add padding around text
                 (0, 100, 0),  # Dark green in BGR
@@ -366,7 +371,7 @@ def run_inference_webcam(
 
             # Draw text
             cv2.putText(
-                result_bgr,
+                result_image,
                 width_text,
                 (10, 30),
                 cv2.FONT_HERSHEY_SIMPLEX,
@@ -378,12 +383,12 @@ def run_inference_webcam(
             # Add FPS display (existing code)
             fps_text = f"FPS: {fps_display:.1f}"
             text_size = cv2.getTextSize(fps_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
-            text_x = result_bgr.shape[1] - text_size[0] - 10
+            text_x = result_image.shape[1] - text_size[0] - 10
             text_y = 30
 
             # Draw FPS background rectangle
             cv2.rectangle(
-                result_bgr,
+                result_image,
                 (text_x - 5, text_y - text_size[1] - 5),
                 (text_x + text_size[0] + 5, text_y + 5),
                 (139, 0, 0),
@@ -392,7 +397,7 @@ def run_inference_webcam(
 
             # Draw FPS text
             cv2.putText(
-                result_bgr,
+                result_image,
                 fps_text,
                 (text_x, text_y),
                 cv2.FONT_HERSHEY_SIMPLEX,
@@ -406,21 +411,21 @@ def run_inference_webcam(
             text_size = cv2.getTextSize(
                 provider_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2
             )[0]
-            text_x = (result_bgr.shape[1] - text_size[0]) // 2
-            text_y = result_bgr.shape[0] - 20
+            text_x = (result_image.shape[1] - text_size[0]) // 2
+            text_y = result_image.shape[0] - 20
 
             # Draw provider background rectangle
             cv2.rectangle(
-                result_bgr,
+                result_image,
                 (text_x - 5, text_y - text_size[1] - 5),
                 (text_x + text_size[0] + 5, text_y + 5),
-                (0, 0, 139),
+                (139, 0, 0),
                 -1,
             )
 
             # Draw provider text
             cv2.putText(
-                result_bgr,
+                result_image,
                 provider_text,
                 (text_x, text_y),
                 cv2.FONT_HERSHEY_SIMPLEX,
@@ -430,7 +435,7 @@ def run_inference_webcam(
             )
 
             # Display the result
-            cv2.imshow("Webcam Detection", result_bgr)
+            cv2.imshow("Webcam Detection", result_image)
 
             # Handle key presses
             key = cv2.waitKey(1) & 0xFF
@@ -529,7 +534,7 @@ def run_inference_video(
 
     try:
         while cap.isOpened():
-            ret, frame = cap.read()
+            ret, frame = cap.read()  # Frame is already in BGR
             if not ret:
                 break
 
@@ -544,7 +549,7 @@ def run_inference_video(
                 fps_display = 1 / (current_time - prev_time)
             prev_time = current_time
 
-            # Calculate scaling and padding using video_width parameter
+            # Calculate scaling and padding
             height, width = frame.shape[:2]
             scale = video_width / max(height, width)
             new_height = int(height * scale)
@@ -554,24 +559,19 @@ def run_inference_video(
             y_offset = (video_width - new_height) // 2
             x_offset = (video_width - new_width) // 2
 
-            # Create model input with padding using video_width
+            # Create model input with padding (maintain BGR)
             model_input = np.zeros((video_width, video_width, 3), dtype=np.uint8)
             model_input[
                 y_offset : y_offset + new_height, x_offset : x_offset + new_width
             ] = cv2.resize(frame, (new_width, new_height))
 
-            # Convert BGR to RGB for model input
-            image = cv2.cvtColor(model_input, cv2.COLOR_BGR2RGB)
-
             # Prepare input data
             im_data = np.ascontiguousarray(
-                image.transpose(2, 0, 1),
+                model_input.transpose(2, 0, 1),
                 dtype=np.float32,
             )
             im_data = np.expand_dims(im_data, axis=0)
-            orig_size = np.array(
-                [[video_width, video_width]], dtype=np.int64
-            )  # Use padded size
+            orig_size = np.array([[video_width, video_width]], dtype=np.int64)
 
             # Run inference
             input_name = session.get_inputs()[0].name
@@ -590,17 +590,15 @@ def run_inference_video(
 
             # Draw bounding boxes on the original frame
             result_image = draw_boxes(
-                frame,  # Use original frame
+                frame,  # Use original frame (BGR)
                 labels[0],
                 boxes,
                 scores[0],
-                1.0,  # No additional scaling needed
-                (0, 0),  # No additional padding needed
                 threshold=threshold,
                 class_names=class_names,
             )
 
-            # Before writing the frame, resize it
+            # Resize and write frame (no color conversion needed)
             result_image = cv2.resize(result_image, (output_width, output_height))
             out.write(result_image)
 
