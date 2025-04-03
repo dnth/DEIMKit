@@ -173,7 +173,7 @@ def run_inference(
     class_names_path: str | None = None,
     threshold: float = 0.3,
     provider: str = "cpu",
-    video_width: int = 640,
+    inference_size: int = 640,  # renamed from video_width
 ) -> None:
     """Run object detection on images or video streams.
     
@@ -183,7 +183,7 @@ def run_inference(
         class_names_path: Optional path to class names file
         threshold: Detection confidence threshold
         provider: ONNXRuntime provider ("cpu", "cuda", "tensorrt")
-        video_width: Width to resize video input (preserves aspect ratio)
+        inference_size: Size for inference processing (default: 640). Larger dimension will be scaled to this size while preserving aspect ratio
     """
     # Load model and class names
     session = load_model(model_path, provider)
@@ -211,7 +211,7 @@ def run_inference(
             session,
             class_names,
             threshold,
-            video_width
+            inference_size
         )
         
         # Save and display result
@@ -232,9 +232,9 @@ def run_inference(
         # Configure video capture
         if isinstance(input_source, int):  # Webcam settings
             cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc("M", "J", "P", "G"))
-            cap.set(cv2.CAP_PROP_FPS, 100)  # Large value to request max FPS for the camera
-            cap.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
-            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, int(video_width * 9 / 16))
+            cap.set(cv2.CAP_PROP_FPS, 100)
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, inference_size)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, int(inference_size * 9 / 16))
 
         prev_time = time.time()
         fps_display = 0
@@ -257,7 +257,7 @@ def run_inference(
                     session,
                     class_names,
                     threshold,
-                    video_width
+                    inference_size
                 )
 
                 # Add overlay
@@ -265,7 +265,7 @@ def run_inference(
                     result,
                     fps_display,
                     session.get_providers()[0],
-                    video_width,
+                    inference_size,
                     show_overlay
                 )
 
@@ -465,10 +465,10 @@ if __name__ == "__main__":
     parser.add_argument("--image", type=str, help="Path to input image (optional)")
     parser.add_argument("--webcam", action="store_true", help="Use webcam input")
     parser.add_argument(
-        "--video-width",
+        "--inference-size",
         type=int,
         default=640,
-        help="Width of the video input in pixels (default: 640). Height will be adjusted to maintain aspect ratio",
+        help="Size for inference processing (default: 640). Larger dimension will be scaled to this size while preserving aspect ratio",
     )
     parser.add_argument(
         "--classes", type=str, help="Path to class names file (optional)"
@@ -492,7 +492,7 @@ if __name__ == "__main__":
 
     if args.webcam:
         run_inference(
-            args.model, 0, args.classes, args.threshold, args.provider, args.video_width
+            args.model, 0, args.classes, args.threshold, args.provider, args.inference_size
         )
     elif args.video:
         run_inference(
@@ -501,11 +501,11 @@ if __name__ == "__main__":
             args.classes,
             args.threshold,
             args.provider,
-            args.video_width,
+            args.inference_size,
         )
     elif args.image:
         run_inference(
-            args.model, args.image, args.classes, args.threshold, args.provider, args.video_width
+            args.model, args.image, args.classes, args.threshold, args.provider, args.inference_size
         )
     else:
         parser.error("Either --image, --video, or --webcam must be specified")

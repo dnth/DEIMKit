@@ -346,7 +346,7 @@ python scripts/live_inference.py
     --model model.onnx          # Path to the ONNX model file
     --webcam                    # Use webcam as input source
     --classes classes.txt       # Path to the classes file with each name on a new row
-    --video-width 720           # Input size for the model
+    --inference-size 720        # Input size for the model
     --provider tensorrt         # Execution provider (cpu/cuda/tensorrt)
     --threshold 0.3             # Detection confidence threshold
 ```
@@ -385,7 +385,7 @@ python scripts/live_inference.py
     --model model.onnx           # Path to the ONNX model file
     --video video.mp4            # Path to the input video file
     --classes classes.txt        # Path to the classes file with each name on a new row
-    --video-width 320            # Input size for the model
+    --inference-size 320         # Input size for the model (renamed from --video-width)
     --provider cpu               # Execution provider (cpu/cuda/tensorrt)
     --threshold 0.3              # Detection confidence threshold
 ```
@@ -422,7 +422,7 @@ The following is a demo of image inference
 >     --onnx model.onnx           
 >     --webcam                    
 >     --class-names classes.txt   
->     --input-size 320            
+>     --inference-size 320            
 > ```
 > Under the hood, this automatically pull in the `onnxruntime-gpu` package into the `cuda` environment and use the GPU for inference!
 >
@@ -456,7 +456,7 @@ pixi run -e cpu train-model
 
 Run live inference
 ```bash
-pixi run -e cuda live-inference --onnx model.onnx --webcam --provider cuda --class-names classes.txt --input-size 640
+pixi run -e cuda live-inference --onnx model.onnx --webcam --provider cuda --class-names classes.txt --inference-size 640
 ```
 
 > [!TIP]
@@ -468,7 +468,7 @@ pixi run -e cuda live-inference --onnx model.onnx --webcam --provider cuda --cla
 > ```
 
 ```bash
-pixi run -e cpu live-inference --onnx model.onnx --input video.mp4 --class-names classes.txt --input-size 320
+pixi run -e cpu live-inference --onnx model.onnx --input video.mp4 --class-names classes.txt --inference-size 320
 ```
 
 Launch Gradio app
