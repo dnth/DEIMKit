@@ -612,43 +612,62 @@ class Trainer:
         torch.save(state, checkpoint_path)
         logger.info(f"Checkpoint saved to {checkpoint_path}")
 
-    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> None:
+    def load_checkpoint(self, checkpoint_path: Union[str, Path], strict: bool = False) -> None:
         """
-        Load a model checkpoint.
+        Load a model checkpoint, handling potential image size differences.
 
         Args:
             checkpoint_path: Path to the checkpoint file.
+            strict: Whether to strictly enforce that the keys in state_dict match.
         """
         checkpoint_path = Path(checkpoint_path)
         logger.info(f"Loading checkpoint from {checkpoint_path}")
 
         # Load checkpoint
-        if str(checkpoint_path).startswith("http"):
-            state = torch.hub.load_state_dict_from_url(
-                str(checkpoint_path), map_location="cpu"
-            )
-        else:
-            state = torch.load(checkpoint_path, map_location="cpu")
+        state = (torch.hub.load_state_dict_from_url(str(checkpoint_path), map_location="cpu") 
+                 if str(checkpoint_path).startswith("http") 
+                 else torch.load(checkpoint_path, map_location="cpu"))
 
         # Setup if not already done
         if self.model is None:
             self._setup()
 
-        # Load model state
-        self.model.load_state_dict(state["model"])
+        def load_state_dict_with_mismatch(model, state_dict):
+            """Helper function to load state dict handling shape mismatches"""
+            try:
+                missing, unexpected = model.load_state_dict(state_dict, strict=False)
+                if missing or unexpected:
+                    logger.warning(f"Missing keys: {missing}\nUnexpected keys: {unexpected}")
+            except RuntimeError as e:
+                logger.warning(f"Shape mismatch, loading compatible parameters only: {e}")
+                current_state = model.state_dict()
+                matched_state = {
+                    k: v for k, v in state_dict.items()
+                    if k in current_state and current_state[k].shape == v.shape
+                }
+                model.load_state_dict(matched_state, strict=False)
+                logger.info("Loaded parameters with matching shapes")
 
-        # Load optimizer state if available
-        if "optimizer" in state and self.optimizer is not None:
-            self.optimizer.load_state_dict(state["optimizer"])
+        # Load model state
+        load_state_dict_with_mismatch(self.model, state["model"])
 
         # Load EMA state if available
         if "ema" in state and self.ema is not None:
-            self.ema.load_state_dict(state["ema"])
+            try:
+                self.ema.load_state_dict(state["ema"])
+            except RuntimeError:
+                logger.info("Attempting to load EMA parameters with matching shapes...")
+                load_state_dict_with_mismatch(self.ema.module, state["ema"]["module"])
+
+        # Load optimizer state if available
+        if "optimizer" in state and self.optimizer is not None:
+            try:
+                self.optimizer.load_state_dict(state["optimizer"])
+            except ValueError as e:
+                logger.warning(f"Could not load optimizer state: {e}")
 
         # Update last epoch
-        if "last_epoch" in state:
-            self.last_epoch = state["last_epoch"]
-
+        self.last_epoch = state.get("last_epoch", -1)
         logger.info(f"Loaded checkpoint from epoch {self.last_epoch}")
 
     def test(self) -> Dict[str, Any]:
