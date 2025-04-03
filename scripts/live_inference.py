@@ -25,10 +25,10 @@ def draw_boxes(
     boxes: np.ndarray,
     scores: np.ndarray,
     threshold: float = 0.3,
-    class_names: Optional[list[str]] = None
+    class_names: Optional[list[str]] = None,
 ) -> np.ndarray:
     """Draw bounding boxes on the image with detection results.
-    
+
     Args:
         image: Input image array in BGR format
         labels: Array of class labels
@@ -36,7 +36,7 @@ def draw_boxes(
         scores: Array of confidence scores
         threshold: Minimum confidence threshold for displaying detections
         class_names: Optional list of class names for labels
-        
+
     Returns:
         np.ndarray: Image with drawn bounding boxes in BGR format
     """
@@ -110,10 +110,20 @@ def draw_boxes(
     return image
 
 
-def run_inference(
-    model_path, image_path, class_names_path=None, threshold=0.3, provider="cpu"
-):
-    # Set up providers based on selection
+def load_model(model_path: str, provider: str = "cpu") -> ort.InferenceSession:
+    """Initialize and load the ONNX model with specified provider.
+
+    Args:
+        model_path: Path to the ONNX model file
+        provider: Provider to use for inference ("cpu", "cuda", or "tensorrt")
+
+    Returns:
+        ort.InferenceSession: Initialized ONNX Runtime session
+
+    Raises:
+        RuntimeError: If model loading fails with specified provider
+    """
+    
     if provider == "cpu":
         providers = ["CPUExecutionProvider"]
     elif provider == "cuda":
@@ -134,7 +144,7 @@ def run_inference(
             (
                 "TensorrtExecutionProvider",
                 {
-                    "trt_fp16_enable": True,
+                    "trt_fp16_enable": False,
                     "trt_engine_cache_enable": True,
                     "trt_engine_cache_path": "./trt_cache",
                     "trt_timing_cache_enable": True,
@@ -142,17 +152,41 @@ def run_inference(
             ),
             "CPUExecutionProvider",
         ]
+    else:
+        raise ValueError(f"Unsupported provider: {provider}")
 
     try:
         print(f"Loading ONNX model with providers: {providers}...")
         session = ort.InferenceSession(model_path, providers=providers)
         print(f"Using provider: {session.get_providers()[0]}")
+        return session
     except Exception as e:
         print(f"Error creating inference session with providers {providers}: {e}")
         print("Attempting to fall back to CPU execution...")
         session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+        return session
 
-    # Load class names if provided
+
+def run_inference(
+    model_path: str,
+    input_source: str | int,  # Can be image path, video path, or camera index
+    class_names_path: str | None = None,
+    threshold: float = 0.3,
+    provider: str = "cpu",
+    video_width: int = 640,
+) -> None:
+    """Run object detection on images or video streams.
+    
+    Args:
+        model_path: Path to the ONNX model file
+        input_source: Path to image/video file or camera index (usually 0 for webcam)
+        class_names_path: Optional path to class names file
+        threshold: Detection confidence threshold
+        provider: ONNXRuntime provider ("cpu", "cuda", "tensorrt")
+        video_width: Width to resize video input (preserves aspect ratio)
+    """
+    # Load model and class names
+    session = load_model(model_path, provider)
     class_names = None
     if class_names_path:
         try:
@@ -162,25 +196,140 @@ def run_inference(
         except Exception as e:
             print(f"Error loading class names: {e}")
 
-    # Load image
-    image = cv2.imread(image_path)  # Load as BGR
-    original_image = image.copy()
+    # Determine if input is image file or video source
+    if isinstance(input_source, str) and any(
+        input_source.lower().endswith(ext) 
+        for ext in ['.jpg', '.jpeg', '.png', '.bmp']
+    ):
+        # Handle single image
+        image = cv2.imread(input_source)
+        if image is None:
+            raise RuntimeError(f"Failed to load image: {input_source}")
+            
+        result = process_frame(
+            image,
+            session,
+            class_names,
+            threshold,
+            video_width
+        )
+        
+        # Save and display result
+        output_path = "detection_result.jpg"
+        cv2.imwrite(output_path, result)
+        print(f"Detection complete. Result saved to {output_path}")
+        
+        cv2.imshow("Detection Result", result)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        
+    else:
+        # Handle video/webcam
+        cap = cv2.VideoCapture(input_source)
+        if not cap.isOpened():
+            raise RuntimeError(f"Failed to open video source: {input_source}")
 
-    # Prepare input data (maintain BGR format)
+        # Configure video capture
+        if isinstance(input_source, int):  # Webcam settings
+            cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc("M", "J", "P", "G"))
+            cap.set(cv2.CAP_PROP_FPS, 100)  # Large value to request max FPS for the camera
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, int(video_width * 9 / 16))
+
+        prev_time = time.time()
+        fps_display = 0
+        show_overlay = True
+
+        try:
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+
+                # Calculate FPS
+                current_time = time.time()
+                fps_display = 1 / (current_time - prev_time) if current_time - prev_time > 0 else 0
+                prev_time = current_time
+
+                # Process frame
+                result = process_frame(
+                    frame,
+                    session,
+                    class_names,
+                    threshold,
+                    video_width
+                )
+
+                # Add overlay
+                result = draw_text_overlay(
+                    result,
+                    fps_display,
+                    session.get_providers()[0],
+                    video_width,
+                    show_overlay
+                )
+
+                # Display result
+                cv2.imshow("Detection", result)
+
+                # Handle key presses
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord("q"):
+                    break
+                elif key == ord("t"):
+                    show_overlay = not show_overlay
+
+        finally:
+            cap.release()
+            cv2.destroyAllWindows()
+
+
+def process_frame(
+    frame: np.ndarray,
+    session: ort.InferenceSession,
+    class_names: list[str] | None,
+    threshold: float,
+    target_width: int,
+) -> np.ndarray:
+    """Process a single frame through the object detection model.
+    
+    Args:
+        frame: Input frame in BGR format
+        session: ONNX Runtime inference session
+        class_names: Optional list of class names
+        threshold: Detection confidence threshold
+        target_width: Target width for processing
+        
+    Returns:
+        np.ndarray: Processed frame with detections
+    """
+    # Calculate scaling and padding
+    height, width = frame.shape[:2]
+    scale = target_width / max(height, width)
+    new_height = int(height * scale)
+    new_width = int(width * scale)
+
+    # Calculate padding
+    y_offset = (target_width - new_height) // 2
+    x_offset = (target_width - new_width) // 2
+
+    # Create model input with padding
+    model_input = np.zeros((target_width, target_width, 3), dtype=np.uint8)
+    model_input[
+        y_offset : y_offset + new_height,
+        x_offset : x_offset + new_width
+    ] = cv2.resize(frame, (new_width, new_height))
+
+    # Prepare input data
     im_data = np.ascontiguousarray(
-        image.transpose(2, 0, 1),  # HWC to CHW format
+        model_input.transpose(2, 0, 1),
         dtype=np.float32,
     )
     im_data = np.expand_dims(im_data, axis=0)
-    orig_size = np.array([[image.shape[0], image.shape[1]]], dtype=np.int64)
-
-    print(f"Image frame shape: {image.shape}")
-    print(f"Processed input shape: {im_data.shape}")
-
-    # Get input name from model metadata
-    input_name = session.get_inputs()[0].name
+    orig_size = np.array([[target_width, target_width]], dtype=np.int64)
 
     # Run inference
+    input_name = session.get_inputs()[0].name
     outputs = session.run(
         output_names=None,
         input_feed={input_name: im_data, "orig_target_sizes": orig_size},
@@ -188,508 +337,122 @@ def run_inference(
 
     # Process outputs
     labels, boxes, scores = outputs
+    
+    # Scale boxes back to original frame size
+    boxes = boxes[0]  # Remove batch dimension
+    boxes[:, [0, 2]] = (boxes[:, [0, 2]] - x_offset) / scale  # x coordinates
+    boxes[:, [1, 3]] = (boxes[:, [1, 3]] - y_offset) / scale  # y coordinates
 
-    # print(outputs)
-
-    # Draw bounding boxes on the image
-    result_image = draw_boxes(
-        original_image,
+    # Draw detections
+    return draw_boxes(
+        frame,
         labels[0],
-        boxes[0],
+        boxes,
         scores[0],
         threshold=threshold,
         class_names=class_names,
     )
 
-    # Save and show result (no color conversion needed)
-    output_path = "detection_result.jpg"
-    cv2.imwrite(output_path, result_image)
-    print(f"Detection complete. Result saved to {output_path}")
 
-    # Display the result
-    cv2.imshow("Detection Result", result_image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+def draw_text_overlay(
+    image: np.ndarray,
+    fps: float,
+    provider: str,
+    video_width: int,
+    show_overlay: bool = True,
+) -> np.ndarray:
+    """Draw text overlays (FPS, width, provider) on the detection frame.
+    
+    Args:
+        image: Input image array in BGR format
+        fps: Current FPS value to display
+        provider: Provider name being used
+        video_width: Current video width in pixels
+        show_overlay: Whether to show the text overlay
+        
+    Returns:
+        np.ndarray: Image with text overlays
+    """
+    if not show_overlay:
+        return image
 
-    return result_image
+    # Add video width display at top left with dark green background
+    width_text = f"Width: {int(video_width)}px"
+    text_size = cv2.getTextSize(width_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
 
-
-def run_inference_webcam(
-    model_path, class_names_path=None, provider="cpu", threshold=0.3, video_width=640
-):
-    """Run real-time object detection on webcam feed."""
-    # Set up providers based on selection
-    if provider == "cpu":
-        providers = ["CPUExecutionProvider"]
-    elif provider == "cuda":
-        providers = [
-            (
-                "CUDAExecutionProvider",
-                {
-                    "arena_extend_strategy": "kNextPowerOfTwo",
-                    "gpu_mem_limit": 2 * 1024 * 1024 * 1024,
-                    "cudnn_conv_algo_search": "EXHAUSTIVE",
-                    "do_copy_in_default_stream": True,
-                },
-            ),
-            "CPUExecutionProvider",
-        ]
-    elif provider == "tensorrt":
-        providers = [
-            (
-                "TensorrtExecutionProvider",
-                {
-                    "trt_fp16_enable": False,
-                    "trt_engine_cache_enable": True,
-                    "trt_engine_cache_path": "./trt_cache",
-                    "trt_timing_cache_enable": True,
-                },
-            ),
-            "CPUExecutionProvider",
-        ]
-
-    try:
-        print(f"Loading ONNX model with providers: {providers}...")
-        session = ort.InferenceSession(model_path, providers=providers)
-        print(f"Using provider: {session.get_providers()[0]}")
-    except Exception as e:
-        print(f"Error creating inference session with providers {providers}: {e}")
-        print("Attempting to fall back to CPU execution...")
-        session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
-
-    # Update FPS calculation variables
-    prev_time = time.time()
-    fps_display = 0
-
-    # Load class names if provided
-    class_names = None
-    if class_names_path:
-        try:
-            with open(class_names_path, "r") as f:
-                class_names = [line.strip() for line in f.readlines()]
-            print(f"Loaded {len(class_names)} class names")
-        except Exception as e:
-            print(f"Error loading class names: {e}")
-
-    # Initialize webcam
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        raise RuntimeError("Failed to open webcam")
-
-    # Set camera to maximum possible FPS
-    cap.set(
-        cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc("M", "J", "P", "G")
-    )  # Use MJPG format for higher FPS
-    cap.set(
-        cv2.CAP_PROP_FPS, 1000
-    )  # Request very high FPS - will default to max supported
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, int(video_width * 9 / 16))  # 16:9 aspect ratio
-
-    # Print actual camera properties
-    actual_fps = cap.get(cv2.CAP_PROP_FPS)
-    actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    print(
-        f"Camera settings - FPS: {actual_fps}, Resolution: {actual_width}x{actual_height}"
+    # Draw dark green background rectangle
+    cv2.rectangle(
+        image,
+        (5, 5),  # Slight padding from corner
+        (text_size[0] + 15, 35),  # Add padding around text
+        (0, 100, 0),  # Dark green in BGR
+        -1,  # Filled rectangle
     )
 
-    try:
-        while True:
-            ret, frame = cap.read()  # Frame is already in BGR
-            if not ret:
-                print("Failed to grab frame")
-                break
+    # Draw width text
+    cv2.putText(
+        image,
+        width_text,
+        (10, 30),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.8,
+        (255, 255, 255),  # White text
+        2,
+    )
 
-            # Calculate FPS
-            current_time = time.time()
-            if current_time - prev_time > 0:
-                fps_display = 1 / (current_time - prev_time)
-            prev_time = current_time
+    # Add FPS display
+    fps_text = f"FPS: {fps:.1f}"
+    text_size = cv2.getTextSize(fps_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+    text_x = image.shape[1] - text_size[0] - 10
+    text_y = 30
 
-            # Calculate scaling and padding
-            height, width = frame.shape[:2]
-            scale = 640.0 / max(height, width)
-            new_height = int(height * scale)
-            new_width = int(width * scale)
+    # Draw FPS background rectangle
+    cv2.rectangle(
+        image,
+        (text_x - 5, text_y - text_size[1] - 5),
+        (text_x + text_size[0] + 5, text_y + 5),
+        (139, 0, 0),
+        -1,
+    )
 
-            # Calculate padding
-            y_offset = (640 - new_height) // 2
-            x_offset = (640 - new_width) // 2
+    # Draw FPS text
+    cv2.putText(
+        image,
+        fps_text,
+        (text_x, text_y),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.8,
+        (255, 255, 255),
+        2,
+    )
 
-            # Create model input with padding (maintain BGR)
-            model_input = np.zeros((640, 640, 3), dtype=np.uint8)
-            model_input[
-                y_offset : y_offset + new_height, x_offset : x_offset + new_width
-            ] = cv2.resize(frame, (new_width, new_height))
+    # Add provider display
+    provider_text = f"Provider: {provider}"
+    text_size = cv2.getTextSize(provider_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+    text_x = (image.shape[1] - text_size[0]) // 2
+    text_y = image.shape[0] - 20
 
-            # Prepare input data
-            im_data = np.ascontiguousarray(
-                model_input.transpose(2, 0, 1),
-                dtype=np.float32,
-            )
-            im_data = np.expand_dims(im_data, axis=0)
-            orig_size = np.array([[640, 640]], dtype=np.int64)
+    # Draw provider background rectangle
+    cv2.rectangle(
+        image,
+        (text_x - 5, text_y - text_size[1] - 5),
+        (text_x + text_size[0] + 5, text_y + 5),
+        (0, 0, 139),
+        -1,
+    )
 
-            # Get input name and run inference
-            input_name = session.get_inputs()[0].name
-            outputs = session.run(
-                output_names=None,
-                input_feed={input_name: im_data, "orig_target_sizes": orig_size},
-            )
+    # Draw provider text
+    cv2.putText(
+        image,
+        provider_text,
+        (text_x, text_y),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.8,
+        (255, 255, 255),
+        2,
+    )
 
-            # Process outputs
-            labels, boxes, scores = outputs
-
-            # Scale boxes from padded 640x640 to original frame size
-            boxes = boxes[0]  # Remove batch dimension
-            boxes[:, [0, 2]] = (boxes[:, [0, 2]] - x_offset) / scale  # x coordinates
-            boxes[:, [1, 3]] = (boxes[:, [1, 3]] - y_offset) / scale  # y coordinates
-
-            # Draw bounding boxes on the original frame
-            result_image = draw_boxes(
-                frame,  # Use original frame (BGR)
-                labels[0],
-                boxes,
-                scores[0],
-                threshold=threshold,
-                class_names=class_names,
-            )
-
-            # Add video width display at top left with dark green background
-            width_text = f"Width: {int(actual_width)}px"
-            text_size = cv2.getTextSize(width_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
-            
-            # Draw dark green background rectangle
-            cv2.rectangle(
-                result_image,
-                (5, 5),  # Slight padding from corner
-                (text_size[0] + 15, 35),  # Add padding around text
-                (0, 100, 0),  # Dark green in BGR
-                -1,  # Filled rectangle
-            )
-
-            # Draw text
-            cv2.putText(
-                result_image,
-                width_text,
-                (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
-                (255, 255, 255),  # White text
-                2,
-            )
-
-            # Add FPS display (existing code)
-            fps_text = f"FPS: {fps_display:.1f}"
-            text_size = cv2.getTextSize(fps_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
-            text_x = result_image.shape[1] - text_size[0] - 10
-            text_y = 30
-
-            # Draw FPS background rectangle
-            cv2.rectangle(
-                result_image,
-                (text_x - 5, text_y - text_size[1] - 5),
-                (text_x + text_size[0] + 5, text_y + 5),
-                (139, 0, 0),
-                -1,
-            )
-
-            # Draw FPS text
-            cv2.putText(
-                result_image,
-                fps_text,
-                (text_x, text_y),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
-                (255, 255, 255),
-                2,
-            )
-
-            # Add provider display
-            provider_text = f"Provider: {session.get_providers()[0]}"
-            text_size = cv2.getTextSize(
-                provider_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2
-            )[0]
-            text_x = (result_image.shape[1] - text_size[0]) // 2
-            text_y = result_image.shape[0] - 20
-
-            # Draw provider background rectangle
-            cv2.rectangle(
-                result_image,
-                (text_x - 5, text_y - text_size[1] - 5),
-                (text_x + text_size[0] + 5, text_y + 5),
-                (139, 0, 0),
-                -1,
-            )
-
-            # Draw provider text
-            cv2.putText(
-                result_image,
-                provider_text,
-                (text_x, text_y),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
-                (255, 255, 255),
-                2,
-            )
-
-            # Display the result
-            cv2.imshow("Webcam Detection", result_image)
-
-            # Handle key presses
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord("q"):
-                break
-
-    finally:
-        cap.release()
-        cv2.destroyAllWindows()
-
-
-def run_inference_video(
-    model_path,
-    video_path,
-    class_names_path=None,
-    provider="cpu",
-    threshold=0.3,
-    video_width=640,
-):
-    """Run object detection on a video file."""
-    # Set up providers (same as webcam function)
-    if provider == "cpu":
-        providers = ["CPUExecutionProvider"]
-    elif provider == "cuda":
-        providers = [
-            (
-                "CUDAExecutionProvider",
-                {
-                    "arena_extend_strategy": "kNextPowerOfTwo",
-                    "gpu_mem_limit": 2 * 1024 * 1024 * 1024,
-                    "cudnn_conv_algo_search": "EXHAUSTIVE",
-                    "do_copy_in_default_stream": True,
-                },
-            ),
-            "CPUExecutionProvider",
-        ]
-    elif provider == "tensorrt":
-        providers = [
-            (
-                "TensorrtExecutionProvider",
-                {
-                    "trt_fp16_enable": False,
-                    "trt_engine_cache_enable": True,
-                    "trt_engine_cache_path": "./trt_cache",
-                    "trt_timing_cache_enable": True,
-                },
-            ),
-            "CPUExecutionProvider",
-        ]
-
-    # Initialize model session
-    try:
-        print(f"Loading ONNX model with providers: {providers}...")
-        session = ort.InferenceSession(model_path, providers=providers)
-        print(f"Using provider: {session.get_providers()[0]}")
-    except Exception as e:
-        print(f"Error creating inference session with providers {providers}: {e}")
-        print("Attempting to fall back to CPU execution...")
-        session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
-
-    # Load class names
-    class_names = None
-    if class_names_path:
-        try:
-            with open(class_names_path, "r") as f:
-                class_names = [line.strip() for line in f.readlines()]
-            print(f"Loaded {len(class_names)} class names")
-        except Exception as e:
-            print(f"Error loading class names: {e}")
-
-    # Open video file
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        raise RuntimeError(f"Failed to open video file: {video_path}")
-
-    # Get video properties
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
-    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
-    # Calculate output dimensions based on video_width
-    scale = video_width / frame_width
-    output_width = video_width
-    output_height = int(frame_height * scale)
-
-    # Create video writer with new dimensions
-    output_path = "detection_output.mp4"
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    out = cv2.VideoWriter(output_path, fourcc, fps, (output_width, output_height))
-
-    # Initialize FPS calculation
-    prev_time = time.time()
-    fps_display = 0
-    frame_count = 0
-
-    try:
-        while cap.isOpened():
-            ret, frame = cap.read()  # Frame is already in BGR
-            if not ret:
-                break
-
-            frame_count += 1
-            if frame_count % 10 == 0:
-                progress = (frame_count / total_frames) * 100
-                print(f"Processing: {progress:.1f}% complete", end="\r")
-
-            # Calculate FPS
-            current_time = time.time()
-            if current_time - prev_time > 0:
-                fps_display = 1 / (current_time - prev_time)
-            prev_time = current_time
-
-            # Calculate scaling and padding
-            height, width = frame.shape[:2]
-            scale = video_width / max(height, width)
-            new_height = int(height * scale)
-            new_width = int(width * scale)
-
-            # Calculate padding
-            y_offset = (video_width - new_height) // 2
-            x_offset = (video_width - new_width) // 2
-
-            # Create model input with padding (maintain BGR)
-            model_input = np.zeros((video_width, video_width, 3), dtype=np.uint8)
-            model_input[
-                y_offset : y_offset + new_height, x_offset : x_offset + new_width
-            ] = cv2.resize(frame, (new_width, new_height))
-
-            # Prepare input data
-            im_data = np.ascontiguousarray(
-                model_input.transpose(2, 0, 1),
-                dtype=np.float32,
-            )
-            im_data = np.expand_dims(im_data, axis=0)
-            orig_size = np.array([[video_width, video_width]], dtype=np.int64)
-
-            # Run inference
-            input_name = session.get_inputs()[0].name
-            outputs = session.run(
-                output_names=None,
-                input_feed={input_name: im_data, "orig_target_sizes": orig_size},
-            )
-
-            # Process outputs
-            labels, boxes, scores = outputs
-
-            # Scale boxes from padded 640x640 to original frame size
-            boxes = boxes[0]  # Remove batch dimension
-            boxes[:, [0, 2]] = (boxes[:, [0, 2]] - x_offset) / scale  # x coordinates
-            boxes[:, [1, 3]] = (boxes[:, [1, 3]] - y_offset) / scale  # y coordinates
-
-            # Draw bounding boxes on the original frame
-            result_image = draw_boxes(
-                frame,  # Use original frame (BGR)
-                labels[0],
-                boxes,
-                scores[0],
-                threshold=threshold,
-                class_names=class_names,
-            )
-
-            # Resize and write frame (no color conversion needed)
-            result_image = cv2.resize(result_image, (output_width, output_height))
-            out.write(result_image)
-
-            # Add video width display at top left with dark green background
-            width_text = f"Width: {output_width}px"
-            text_size = cv2.getTextSize(width_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
-            
-            # Draw dark green background rectangle
-            cv2.rectangle(
-                result_image,
-                (5, 5),  # Slight padding from corner
-                (text_size[0] + 15, 35),  # Add padding around text
-                (0, 100, 0),  # Dark green in BGR
-                -1,  # Filled rectangle
-            )
-
-            # Draw text
-            cv2.putText(
-                result_image,
-                width_text,
-                (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
-                (255, 255, 255),  # White text
-                2,
-            )
-
-            # Add FPS counter and provider info (existing code)
-            fps_text = f"FPS: {fps_display:.1f}"
-            text_size = cv2.getTextSize(fps_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
-            text_x = result_image.shape[1] - text_size[0] - 10
-            text_y = 30
-
-            # Draw FPS background rectangle
-            cv2.rectangle(
-                result_image,
-                (text_x - 5, text_y - text_size[1] - 5),
-                (text_x + text_size[0] + 5, text_y + 5),
-                (139, 0, 0),
-                -1,
-            )
-
-            # Draw FPS text
-            cv2.putText(
-                result_image,
-                fps_text,
-                (text_x, text_y),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
-                (255, 255, 255),
-                2,
-            )
-
-            # Add provider display at bottom (matching webcam style)
-            provider_text = f"Provider: {session.get_providers()[0]}"
-            text_size = cv2.getTextSize(
-                provider_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2
-            )[0]
-            text_x = (result_image.shape[1] - text_size[0]) // 2
-            text_y = result_image.shape[0] - 20
-
-            # Draw provider background rectangle
-            cv2.rectangle(
-                result_image,
-                (text_x - 5, text_y - text_size[1] - 5),
-                (text_x + text_size[0] + 5, text_y + 5),
-                (139, 0, 0),
-                -1,
-            )
-
-            # Draw provider text
-            cv2.putText(
-                result_image,
-                provider_text,
-                (text_x, text_y),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
-                (255, 255, 255),
-                2,
-            )
-
-            # Display frame (optional)
-            cv2.imshow("Video Detection", result_image)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
-
-    finally:
-        cap.release()
-        out.release()
-        cv2.destroyAllWindows()
-        print(f"\nVideo processing complete. Output saved to {output_path}")
+    return image
 
 
 if __name__ == "__main__":
@@ -728,21 +491,21 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.webcam:
-        run_inference_webcam(
-            args.model, args.classes, args.provider, args.threshold, args.video_width
+        run_inference(
+            args.model, 0, args.classes, args.threshold, args.provider, args.video_width
         )
     elif args.video:
-        run_inference_video(
+        run_inference(
             args.model,
             args.video,
             args.classes,
-            args.provider,
             args.threshold,
+            args.provider,
             args.video_width,
         )
     elif args.image:
         run_inference(
-            args.model, args.image, args.classes, args.threshold, args.provider
+            args.model, args.image, args.classes, args.threshold, args.provider, args.video_width
         )
     else:
         parser.error("Either --image, --video, or --webcam must be specified")
