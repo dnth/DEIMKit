@@ -253,7 +253,7 @@ def log_pr_curves(
             colors,
             f'Precision-Recall Curves ({iou_type})'
         )
-        writer.add_figure(f'metrics/{iou_type}/precision_recall_curve', fig, global_step)
+        writer.add_figure(f'metrics-PR/{iou_type}/precision_recall_curve', fig, global_step)
         plt.close(fig)
         
         # Area based curves
@@ -276,7 +276,7 @@ def log_pr_curves(
             colors,
             f'Precision-Recall Curves by Area ({iou_type})'
         )
-        writer.add_figure(f'metrics/{iou_type}/precision_recall_curve_by_area', fig, global_step)
+        writer.add_figure(f'metrics-PR/{iou_type}/precision_recall_curve_by_area', fig, global_step)
         plt.close(fig)
 
 def calculate_f1_score(precision: float, recall: float) -> float:
@@ -347,14 +347,23 @@ def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, 
     stats = {}
     if coco_evaluator is not None:
         if 'bbox' in iou_types:
-            stats['coco_eval_bbox'] = coco_evaluator.coco_eval['bbox'].stats.tolist()
-        if 'segm' in iou_types:
-            stats['coco_eval_masks'] = coco_evaluator.coco_eval['segm'].stats.tolist()
-        
-        # Log mAP metrics to TensorBoard
-        if writer is not None and dist_utils.is_main_process() and global_step is not None:
-            if 'bbox' in iou_types:
-                bbox_stats = coco_evaluator.coco_eval['bbox'].stats
+            bbox_stats = coco_evaluator.coco_eval['bbox'].stats
+            # Add top-level metrics for quick overview
+            if writer is not None and dist_utils.is_main_process() and global_step is not None:
+                # Primary metrics at top level
+                writer.add_scalar('top-level-metrics/mAP_50_95', bbox_stats[0], global_step)  
+                
+                # Top-level recall metrics
+                writer.add_scalar('top-level-metrics/mAR_50_95', bbox_stats[8], global_step)     
+                
+                # Calculate and log F1 scores at top level
+                f1_50_95 = calculate_f1_score(bbox_stats[0], bbox_stats[8])
+                
+                if f1_50_95 is not None:
+                    writer.add_scalar('top-level-metrics/F1_50_95', f1_50_95, global_step)
+
+            # Continue with existing detailed metrics logging
+            if writer is not None and dist_utils.is_main_process() and global_step is not None:
                 # Average Precision metrics (indices 0-5)
                 writer.add_scalar('metrics-AP/IoU_0.50-0.95_area_all_maxDets_100', bbox_stats[0], global_step)
                 writer.add_scalar('metrics-AP/IoU_0.50_area_all_maxDets_100', bbox_stats[1], global_step)

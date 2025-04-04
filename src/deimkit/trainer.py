@@ -501,7 +501,6 @@ class Trainer:
                             self._save_checkpoint(
                                 epoch, eval_stats, self.output_dir / "best.pth"
                             )
-                            # Add a prominent message for new best model
                             logger.info(
                                 f"🏆 NEW BEST MODEL! Epoch {epoch} / mAP: {best_stats[k]}"
                             )
@@ -521,25 +520,9 @@ class Trainer:
                             self._save_checkpoint(
                                 epoch, eval_stats, self.output_dir / "best.pth"
                             )
-                            # Add a prominent message for new best model
                             logger.info(
                                 f"🏆 NEW BEST MODEL! Epoch {epoch} / mAP: {best_stats[k]}"
                             )
-
-            # Get mAP value safely from eval_stats
-            # The first value in coco_eval_bbox is the AP@IoU=0.5:0.95 (primary metric)
-            coco_map = (
-                eval_stats.get("coco_eval_bbox", [0.0])[0]
-                if isinstance(eval_stats.get("coco_eval_bbox", [0.0]), list)
-                else 0.0
-            )
-
-            # Log mAP to tensorboard directly here as well
-            if writer is not None:
-                writer.add_scalar("metrics/mAP", coco_map, global_step)
-
-                # Also log best mAP so far
-                writer.add_scalar("metrics/best_mAP", top1, global_step)
 
             logger.info(f"✅ Current best stats: {best_stats}")
 
@@ -612,7 +595,9 @@ class Trainer:
         torch.save(state, checkpoint_path)
         logger.info(f"Checkpoint saved to {checkpoint_path}")
 
-    def load_checkpoint(self, checkpoint_path: Union[str, Path], strict: bool = False) -> None:
+    def load_checkpoint(
+        self, checkpoint_path: Union[str, Path], strict: bool = False
+    ) -> None:
         """
         Load a model checkpoint, handling potential image size differences.
 
@@ -624,9 +609,11 @@ class Trainer:
         logger.info(f"Loading checkpoint from {checkpoint_path}")
 
         # Load checkpoint
-        state = (torch.hub.load_state_dict_from_url(str(checkpoint_path), map_location="cpu") 
-                 if str(checkpoint_path).startswith("http") 
-                 else torch.load(checkpoint_path, map_location="cpu"))
+        state = (
+            torch.hub.load_state_dict_from_url(str(checkpoint_path), map_location="cpu")
+            if str(checkpoint_path).startswith("http")
+            else torch.load(checkpoint_path, map_location="cpu")
+        )
 
         # Setup if not already done
         if self.model is None:
@@ -637,12 +624,17 @@ class Trainer:
             try:
                 missing, unexpected = model.load_state_dict(state_dict, strict=False)
                 if missing or unexpected:
-                    logger.warning(f"Missing keys: {missing}\nUnexpected keys: {unexpected}")
+                    logger.warning(
+                        f"Missing keys: {missing}\nUnexpected keys: {unexpected}"
+                    )
             except RuntimeError as e:
-                logger.warning(f"Shape mismatch, loading compatible parameters only: {e}")
+                logger.warning(
+                    f"Shape mismatch, loading compatible parameters only: {e}"
+                )
                 current_state = model.state_dict()
                 matched_state = {
-                    k: v for k, v in state_dict.items()
+                    k: v
+                    for k, v in state_dict.items()
                     if k in current_state and current_state[k].shape == v.shape
                 }
                 model.load_state_dict(matched_state, strict=False)
