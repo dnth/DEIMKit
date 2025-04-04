@@ -338,6 +338,11 @@ python scripts/gradio_demo.py \
 > [!TIP]
 > Live inference is provided as an independent script so that you can load this script into any deployment devices without having to install all the (large) dependencies in this repo. The script only requires `onnxruntime`, `cv2` and `numpy` to run.
 
+There are two live inference scripts:
+
+1. `live_inference.py` - Run live inference on a video, image or webcam using ONNXRuntime. This script requires a pre-exported ONNX model.
+2. `live_inference_pretrained.py` - Automatically download the pretrained model, convert to ONNX, and run inference in one go.
+
 Run live inference on a video, image or webcam using ONNXRuntime. This runs on CPU by default.
 If you would like to use the CUDA backend, install the `onnxruntime-gpu` package and uninstall the `onnxruntime` package.
 
@@ -471,6 +476,11 @@ pixi run -e cuda live-inference --onnx model.onnx --webcam --provider cuda --cla
 
 ```bash
 pixi run -e cpu live-inference --onnx model.onnx --input video.mp4 --class-names classes.txt --inference-size 320
+```
+
+Live inference with pretrained model on webcam
+```bash
+pixi run -e cuda live-inference-pretrained --webcam
 ```
 
 Launch Gradio app

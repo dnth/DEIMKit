@@ -11,7 +11,6 @@ dependencies = [
     "calflops>=0.3.2,<0.4",
     "transformers>=4.49.0,<5",
     "opencv-python>=4.11.0.86,<5",
-    "gdown>=5.2.0,<6",
     "loguru>=0.7.3,<0.8",
     "matplotlib",
     "onnx>=1.17.0,<2",
@@ -66,6 +65,7 @@ default = { features = ["cpu"] }
 [tool.pixi.tasks]
 quickstart = "python scripts/quickstart.py"
 live-inference = "python scripts/live_inference.py"
+live-inference-pretrained = "python scripts/live_inference_pretrained.py"
 train-model = "python scripts/train.py"
 gradio-demo = "python scripts/gradio_demo.py"
 export = "python scripts/export.py"

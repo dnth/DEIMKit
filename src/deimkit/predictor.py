@@ -15,15 +15,6 @@ from deimkit.utils import save_only_ema_weights
 from .config import Config
 from .visualization import draw_on_image
 
-MODEL_CHECKPOINT_URLS = {
-    "deim_hgnetv2_n": "1ZPEhiU9nhW4M5jLnYOFwTSLQC1Ugf62e",  # Nano model
-    "deim_hgnetv2_s": "1tB8gVJNrfb6dhFvoHJECKOF5VpkthhfC",  # Small model
-    "deim_hgnetv2_m": "18Lj2a6UN6k_n_UzqnJyiaiLGpDzQQit8",  # Medium model
-    "deim_hgnetv2_l": "1PIRf02XkrA2xAD3wEiKE2FaamZgSGTAr",  # Large model
-    "deim_hgnetv2_x": "1dPtbgtGgq1Oa7k_LgH1GXPelg1IVeu0j",  # XLarge model
-}
-
-DEFAULT_CACHE_DIR = os.path.expanduser("./checkpoints")
 DEFAULT_IMAGE_SIZE = (640, 640)
 DEFAULT_MEAN = [0.485, 0.456, 0.406]
 DEFAULT_STD = [0.229, 0.224, 0.225]
@@ -156,10 +147,8 @@ class Predictor:
 
     def _validate_model_name(self, model_name: str) -> None:
         """Validate that the model name is supported"""
-        if model_name not in MODEL_CHECKPOINT_URLS:
-            raise ValueError(
-                f"Invalid model_name: {model_name}. Must be one of {list(MODEL_CHECKPOINT_URLS.keys())}"
-            )
+        # This method is now empty as the model names are validated in the model.py
+        pass
 
     def _setup_device(self, device: str) -> str:
         """Set up and validate the device for inference"""
@@ -172,36 +161,8 @@ class Predictor:
         self, model_name: str, custom_checkpoint: Optional[str]
     ) -> str:
         """Get the path to the checkpoint file"""
-        if custom_checkpoint is not None:
-            if not os.path.exists(custom_checkpoint):
-                raise ValueError(f"Custom checkpoint not found: {custom_checkpoint}")
-            logger.info(f"Using custom checkpoint: {custom_checkpoint}")
-            return custom_checkpoint
-
-        # Download or use cached checkpoint
-        return self._download_checkpoint(model_name, MODEL_CHECKPOINT_URLS[model_name])
-
-    def _download_checkpoint(self, model_name: str, file_id: str) -> str:
-        """Download checkpoint from Google Drive if not already present"""
-        import gdown
-
-        # Create cache directory if it doesn't exist
-        cache_dir = Path(DEFAULT_CACHE_DIR)
-        cache_dir.mkdir(parents=True, exist_ok=True)
-
-        # Construct local path
-        local_path = cache_dir / f"{model_name}.pth"
-
-        # Download if not already present
-        if not local_path.exists():
-            logger.info(f"Downloading checkpoint for model {model_name}...")
-            url = f"https://drive.google.com/uc?id={file_id}"
-            gdown.download(url, str(local_path), quiet=False)
-            logger.success(f"Downloaded checkpoint to {local_path}")
-        else:
-            logger.info(f"Using cached checkpoint from {local_path}")
-
-        return str(local_path)
+        from .model import get_model_checkpoint
+        return get_model_checkpoint(model_name, custom_checkpoint)
 
     def _load_checkpoint_state(self, checkpoint_path: str) -> Tuple[Dict, int]:
         """Load checkpoint and extract state dict and number of classes"""
