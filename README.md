@@ -383,6 +383,12 @@ Webcam video width at 320x240 pixels (240p):
 https://github.com/user-attachments/assets/f4afff9c-3e6d-4965-ab86-0d4de7ce1a44
 
 
+To run live inference with pretrained model on webcam, use the following command
+```bash
+python scripts/live_inference_pretrained.py --webcam
+```
+
+This downloads the pretrained model, converts it to ONNX, and runs inference on the webcam. All other arguments are optional but they are similar to the `live_inference.py` script.
 
 
 For video inference, specify the path to the video file as the input. Output video will be saved as `onnx_result.mp4` in the current directory.
@@ -398,7 +404,12 @@ python scripts/live_inference.py
 ```
 https://github.com/user-attachments/assets/6bc1dc6a-a223-4220-954d-2dab5c75b4a8
 
-The following is an inference using the pre-trained model `deim_hgnetv2_x` trained on COCO. See how I exported the pre-trained model to onnx in this notebook [here](nbs/export.ipynb).
+
+The following is an inference using the pre-trained model `deim_hgnetv2_x` trained on COCO.
+
+```bash
+python scripts/live_inference_pretrained.py --model deim_hgnetv2_x --video video.mp4
+```
 
 https://github.com/user-attachments/assets/77070ea4-8407-4648-ade3-01cacd77b51b
 
