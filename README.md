@@ -81,6 +81,7 @@
     *   [x] Export Trained Models to ONNX
     *   [x] ONNX Model with Integrated Preprocessing
 *   **🛠️ Utilities & Demos**
+    *   [x] Extensive metric logging for debugging
     *   [x] Cross-Platform Support (Linux, macOS, Windows)
     *   [x] Pixi Environment Management Integration
     *   [x] Interactive Gradio Demo Script
