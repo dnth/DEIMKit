@@ -387,8 +387,14 @@ To run live inference with pretrained model on webcam, use the following command
 ```bash
 python scripts/live_inference_pretrained.py --webcam
 ```
-
 This downloads the pretrained model, converts it to ONNX, and runs inference on the webcam. All other arguments are optional but they are similar to the `live_inference.py` script.
+
+The output is as follows
+
+
+https://github.com/user-attachments/assets/5aca6044-db81-4988-937e-2447a7cbe06e
+
+
 
 
 For video inference, specify the path to the video file as the input. Output video will be saved as `onnx_result.mp4` in the current directory.
