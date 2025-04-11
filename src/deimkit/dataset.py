@@ -67,6 +67,7 @@ def configure_dataset(
     output_dir: str = None,
     train_transforms: Optional[List[Dict[str, Any]]] = None,
     val_transforms: Optional[List[Dict[str, Any]]] = None,
+    dataset_type: str = None,
 ) -> Config:
     """
     Configure dataset settings in a Config object.
@@ -85,10 +86,18 @@ def configure_dataset(
         output_dir: Output directory for saving model and logs
         train_transforms: List of transforms for training data augmentation (uses defaults if None)
         val_transforms: List of transforms for validation data augmentation (uses defaults if None)
+        dataset_type: Dataset type ('coco', 'plantdoc', or None for auto-detection)
 
     Returns:
         Config: The updated Config object
     """
+    # Auto-detect dataset type if not specified
+    if dataset_type is None:
+        if 'plantdoc' in train_ann_file.lower() or 'plantdoc' in train_img_folder.lower():
+            dataset_type = 'plantdoc'
+        else:
+            dataset_type = 'coco'  # Default to COCO format
+    
     # Configure dataset paths
     config_updates = {
         "yaml_cfg.train_dataloader.dataset.ann_file": train_ann_file,
@@ -98,6 +107,18 @@ def configure_dataset(
         "yaml_cfg.train_dataloader.total_batch_size": train_batch_size,
         "yaml_cfg.val_dataloader.total_batch_size": val_batch_size,
     }
+    
+    # Configure dataset type-specific settings
+    if dataset_type == 'plantdoc':
+        config_updates["yaml_cfg.train_dataloader.dataset.type"] = "PlantDocDetection"
+        config_updates["yaml_cfg.val_dataloader.dataset.type"] = "PlantDocDetection"
+        # For PlantDoc, set num_classes to 31 if not specified
+        if num_classes is None:
+            num_classes = 31
+    else:
+        # Keep COCO as default
+        config_updates["yaml_cfg.train_dataloader.dataset.type"] = "CocoDetection"
+        config_updates["yaml_cfg.val_dataloader.dataset.type"] = "CocoDetection"
 
     # Add optional configurations if provided
     if num_classes is not None:

@@ -1,0 +1,100 @@
+{
+  "timestamp": "2025-04-11T23:23:36.481303",
+  "engines": [
+    {
+      "engine_file": "/home/mohamed/DEIMKit/outputs/plantdoc/deim_hgnetv2_m_30ep_416x416/model.engine",
+      "file_size_mb": 47.73373031616211,
+      "latency_results": {
+        "batch_1": {
+          "batch_size": 1,
+          "input_resolution": "416x416",
+          "mean_latency_ms": 153.5654354095459,
+          "median_latency_ms": 7.581949234008789,
+          "min_latency_ms": 5.318164825439453,
+          "max_latency_ms": 14434.923648834229,
+          "p90_latency_ms": 17.976737022399902,
+          "p95_latency_ms": 19.757485389709473,
+          "p99_latency_ms": 166.6075158119939,
+          "std_dev_ms": 1442.5680875131977,
+          "throughput_fps": 6.511882034737084,
+          "samples": 100
+        },
+        "batch_2": {
+          "batch_size": 2,
+          "input_resolution": "416x416",
+          "mean_latency_ms": 9.225342273712158,
+          "median_latency_ms": 8.803725242614746,
+          "min_latency_ms": 6.381034851074219,
+          "max_latency_ms": 20.775556564331055,
+          "p90_latency_ms": 10.717630386352543,
+          "p95_latency_ms": 17.715120315551758,
+          "p99_latency_ms": 20.121269226074222,
+          "std_dev_ms": 2.7789164185504567,
+          "throughput_fps": 216.79412434366253,
+          "samples": 100
+        },
+        "batch_4": {
+          "batch_size": 4,
+          "input_resolution": "416x416",
+          "mean_latency_ms": 38.66206645965576,
+          "median_latency_ms": 13.59260082244873,
+          "min_latency_ms": 7.9021453857421875,
+          "max_latency_ms": 2371.7758655548096,
+          "p90_latency_ms": 21.54932022094727,
+          "p95_latency_ms": 23.80045652389526,
+          "p99_latency_ms": 56.02307796479468,
+          "std_dev_ms": 235.73326938940804,
+          "throughput_fps": 103.46058465793696,
+          "samples": 100
+        },
+        "batch_8": {
+          "batch_size": 8,
+          "input_resolution": "416x416",
+          "mean_latency_ms": 165.60538291931152,
+          "median_latency_ms": 19.405245780944824,
+          "min_latency_ms": 13.500452041625977,
+          "max_latency_ms": 14383.745670318604,
+          "p90_latency_ms": 33.17224979400635,
+          "p95_latency_ms": 34.02484655380248,
+          "p99_latency_ms": 180.58777570731826,
+          "std_dev_ms": 1436.1923893424982,
+          "throughput_fps": 48.307608478511035,
+          "samples": 100
+        }
+      },
+      "evaluation_results": {
+        "coco_eval_bbox": [
+          0.5250257000106751,
+          0.6540804251219587,
+          0.6007444456180686,
+          -1.0,
+          0.31565741989580437,
+          0.549401513625907,
+          0.5311046924150353,
+          0.8028253147749191,
+          0.8530492436519554,
+          -1.0,
+          0.635790794614324,
+          0.8607942442050659
+        ]
+      },
+      "engine_info": {
+        "input_names": [
+          "images",
+          "orig_target_sizes"
+        ],
+        "output_names": [
+          "labels",
+          "boxes",
+          "scores"
+        ]
+      },
+      "input_shape": [
+        1,
+        3,
+        416,
+        416
+      ]
+    }
+  ]
+}

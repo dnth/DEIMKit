@@ -1,343 +1,3 @@
-[![Python Badge](https://img.shields.io/badge/Python-3.10_|_3.11_|_3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![License Badge](https://img.shields.io/badge/License-Apache%202.0-green.svg?style=for-the-badge&logo=apache&logoColor=white)](https://github.com/prefix-dev/pgsql-search/blob/main/LICENSE)
-[![Pixi Badge](https://img.shields.io/badge/🔌_Powered_by-Pixi-yellow?style=for-the-badge)](https://pixi.sh)
-[![Tested on](https://img.shields.io/badge/✓_Tested_on-Linux_•_macOS_•_Windows-purple?style=for-the-badge)](https://github.com/dnth/DEIMKit)
-
-
-<div align="center">
-<img src="assets/logo.png" alt="DEIMKit Logo" width="650">
-
-<p>DEIMKit is a Python wrapper for <a href="https://github.com/ShihuaHuang95/DEIM">DEIM: DETR with Improved Matching for Fast Convergence</a>. Check out the original repo for more details.</p>
-</div>
-
-## Why DEIMKit?
-
-- **Pure Python Configuration** - No complicated YAML files, just clean Python code
-- **Cross-Platform Simplicity** - Single command installation on Linux, macOS, and Windows
-- **Intuitive API** - Load, train, predict, export in just a few lines of code
-
-## Supported Features
-
-- [x] Inference
-- [x] Training
-- [x] Export
-
-## Installation
-
-### Using pip
-Install [torch](https://pytorch.org/get-started/locally/) and torchvision as a pre-requisite.
-
-Next, install the package.
-Bleeding edge version
-```bash
-pip install git+https://github.com/dnth/DEIM.git
-```
-
-Stable version
-```bash
-pip install git+https://github.com/dnth/DEIM.git@v0.1.1
-```
-
-Or install the package from the local directory in editable mode
-
-```bash
-git clone https://github.com/dnth/DEIM.git
-cd DEIM
-pip install -e .
-```
-
-### Using Pixi
-
-> [!TIP] 
-> I recommend using [Pixi](https://pixi.sh) to run this package. Pixi makes it easy to install the right version of Python and the dependencies to run this package on any platform!
-
-Install pixi if you're on Linux or MacOS. 
-
-```bash
-curl -fsSL https://pixi.sh/install.sh | bash
-```
-
-For Windows, you can use the following command.
-
-```bash
-powershell -ExecutionPolicy ByPass -c "irm -useb https://pixi.sh/install.ps1 | iex"
-```
-
-Navigate into the base directory of this repo and run 
-
-```bash
-git clone https://github.com/dnth/DEIMKit.git
-cd DEIMKit
-pixi run quickstart
-```
-This will download a toy dataset with 8 images, and train a model on it for 3 epochs and runs inference on it. It shouldn't take more than 1 minute to complete.
-
-If this runs without any issues, you've got a working Python environment with all the dependencies installed. This also installs DEIMKit in editable mode for development. See the [pixi cheatsheet](#-pixi-cheat-sheet) below for more. 
-
-## Usage
-
-List models supported by DEIMKit
-
-```python
-from deimkit import list_models
-
-list_models()
-```
-
-```
-['deim_hgnetv2_n',
- 'deim_hgnetv2_s',
- 'deim_hgnetv2_m',
- 'deim_hgnetv2_l',
- 'deim_hgnetv2_x']
-```
-
-### Inference
-
-Load a pretrained model by the original authors
-
-```python
-from deimkit import load_model
-
-coco_classes = ["aeroplane", ... "zebra"]
-model = load_model("deim_hgnetv2_x", class_names=coco_classes)
-```
-
-Load a custom trained model
-
-```python
-model = load_model(
-    "deim_hgnetv2_s", 
-    checkpoint="deim_hgnetv2_s_coco_cells/best.pth",
-    class_names=["cell", "platelet", "red_blood_cell", "white_blood_cell"],
-    image_size=(320 , 320)
-)
-```
-
-Run inference on an image
-
-```python
-result = model.predict(image_path, visualize=True)
-```
-
-Access the visualization
-
-```python
-result.visualization
-```
-![alt text](assets/sample_result.jpg)
-
-You can also run batch inference
-
-```python
-results = model.predict_batch(image_paths, visualize=True, batch_size=8)
-```
-
-Here are some sample results I got by training on customs datasets.
-
-Vehicles Dataset
-![alt text](assets/sample_result_batch_0.png)
-
-RBC Cells Dataset
-![alt text](assets/sample_result_batch_1.png)
-
-Stomata Dataset
-![alt text](assets/sample_result_batch_2.png)
-
-See the [demo notebook on using pretrained models](nbs/pretrained-model-inference.ipynb) and [custom model inference](nbs/custom-model-inference.ipynb) for more details.
-
-### Training
-
-DEIMKit provides a simple interface for training your own models.
-
-To start, configure the dataset. Specify the model, the dataset path, batch size, etc.
-
-```python
-from deimkit import Trainer, Config, configure_dataset
-
-conf = Config.from_model_name("deim_hgnetv2_s")
-
-conf = configure_dataset(
-    config=conf,
-    image_size=(640, 640),
-    train_ann_file="dataset/PCB Holes.v4i.coco/train/_annotations.coco.json",
-    train_img_folder="dataset/PCB Holes.v4i.coco/train",
-    val_ann_file="dataset/PCB Holes.v4i.coco/valid/_annotations.coco.json",
-    val_img_folder="dataset/PCB Holes.v4i.coco/valid",
-    train_batch_size=16,
-    val_batch_size=16,
-    num_classes=2,
-    output_dir="./outputs/deim_hgnetv2_s_pcb",
-)
-
-trainer = Trainer(conf)
-trainer.fit(epochs=100)
-```
-
-To run multigpu training (4 GPU for example), place your code into a `.py` file, e.g. `train.py` and use the following command. 
-
-```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --master_port=7778 --nproc_per_node=4 train.py
-```
-Modify the number of GPUs available to your system.
-
-> [!CAUTION]
-> Your dataset should be in COCO format. The class index should **start from 0**. Refer to the structure of a sample dataset exported from [Roboflow](https://universe.roboflow.com/rf-projects/pcb-holes/dataset/4). From my tests this works for DEIMKit.
->
-> The `num_classes` should be the number of classes in your dataset + 1 for the background class.
-
-Monitor training progress
-
-```bash
-tensorboard --logdir ./outputs/deim_hgnetv2_s_pcb
-```
-Point `--logdir` to the `output_dir` directory.
-
-Navigate to the http://localhost:6006/ in your browser to view the training progress.
-
-![alt text](assets/tensorboard.png)
-
-### Export
-
-```python
-from deimkit.exporter import Exporter
-from deimkit.config import Config
-
-config = Config("config.yml")
-exporter = Exporter(config)
-
-output_path = exporter.to_onnx(
-    checkpoint_path="model.pth",
-    output_path="model.onnx"
-)
-```
-
-### Gradio App
-Run a Gradio app to interact with your model.
-
-```bash
-python scripts/gradio_demo.py
-```
-![alt text](assets/gradio_demo.png)
-
-### Live Inference
-Run live inference on a video, image or webcam using ONNXRuntime. This runs on CPU by default.
-If you would like to use the CUDA backend, you can install the `onnxruntime-gpu` package and uninstall the `onnxruntime` package.
-
-For video inference, specify the path to the video file as the input. Output video will be saved as `onnx_result.mp4` in the current directory.
-
-```bash
-python scripts/live_inference.py 
-    --onnx model.onnx           # Path to the ONNX model file
-    --input video.mp4           # Path to the input video file
-    --class-names classes.txt   # Path to the classes file with each name on a new row
-    --input-size 320            # Input size for the model
-```
-
-The following is a demo of video inference after training for about 50 epochs on the vehicles dataset with image size 320x320.
-
-https://github.com/user-attachments/assets/5066768f-c97e-4999-af81-ffd29d88f529
-
-
-You can also run live inference on a webcam by setting the `webcam` flag.
-
-```bash
-python scripts/live_inference.py 
-    --onnx model.onnx           # Path to the ONNX model file
-    --webcam                    # Use webcam as input source
-    --class-names classes.txt   # Path to the classes file. Each class name should be on a new line.
-    --input-size 320            # Input size for the model
-```
-The following is a demo of webcam inference after training on the rock paper scissors dataset 640x640 resolution image.
-
-https://github.com/user-attachments/assets/6e5dbb15-4e3a-45a3-997e-157bb9370146
-
-
-For image inference, specify the path to the image file as the input.
-```bash
-python scripts/live_inference.py 
-    --onnx model.onnx           # Path to the ONNX model file
-    --input image.jpg           # Path to the input image file
-    --class-names classes.txt   # Path to the classes file. Each class name should be on a new line.
-    --input-size 320            # Input size for the model
-```
-The following is a demo of image inference
-
-![image](assets/sample_result_image.jpg)
-
-> [!TIP]
-> If you are using Pixi, you can run the live inference script with the following command with the same arguments as above.
->
-> ```bash
-> pixi run --environment cuda live-inference 
->     --onnx model.onnx           
->     --webcam                    
->     --class-names classes.txt   
->     --input-size 320            
-> ```
-> Under the hood, this automatically pull in the `onnxruntime-gpu` package into the `cuda` environment and use the GPU for inference!
->
-> If you want to use the CPU, replace `cuda` with `cpu` in the command above.
-
-
-## Pixi Cheat Sheet
-Here are some useful tasks you can run with Pixi.
-
-Run a quickstart
-```bash
-pixi run quickstart
-```
-
-Smoke test the package
-```bash
-pixi run -e cpu quickstart
-```
-```bash
-pixi run -e cuda quickstart
-```
-
-Train a model
-```bash
-pixi run -e cuda train-model
-```
-
-```bash
-pixi run -e cpu train-model
-```
-
-Run live inference
-```bash
-pixi run -e cuda live-inference --onnx model.onnx --webcam --provider cuda --class-names classes.txt --input-size 640
-```
-
-> [!TIP]
-> If you want to use TensorRT for inference, you may need to set the `LD_LIBRARY_PATH` environment variable to include the TensorRT libraries.
->
-> For example
-> ```bash
-> export LD_LIBRARY_PATH="/home/dnth/Desktop/DEIMKit/.pixi/envs/cuda/lib/python3.11/site-packages/tensorrt_libs:$LD_LIBRARY_PATH"
-> ```
-
-```bash
-pixi run -e cpu live-inference --onnx model.onnx --input video.mp4 --class-names classes.txt --input-size 320
-```
-
-Launch Gradio app
-```bash
-pixi run -e cuda gradio-demo
-```
-
-```bash
-pixi run -e cpu gradio-demo
-```
-
-Export model to ONNX
-```bash
-pixi run export --config config.yml --checkpoint model.pth --output model.onnx
-```
-
-
-
 ## Disclaimer
 I'm not affiliated with the original DEIM authors. I just found the model interesting and wanted to try it out. The changes made here are of my own. Please cite and star the original repo if you find this useful.
 
@@ -383,10 +43,7 @@ pip install -r requirements.txt
 The framework provides five main optimization targets:
 
 1. **Drone**: Optimize for low-power CPU devices
-2. **Edge**: Optimize for edge devices with moderate computational capability
-3. **Server**: Optimize for server deployment with GPUs
-4. **Benchmark**: Run comprehensive benchmarks comparing multiple models
-5. **Distill**: Perform knowledge distillation from larger to smaller models
+2. **Benchmark**: Run comprehensive benchmarks comparing multiple models
 
 ### Examples
 
@@ -396,28 +53,10 @@ The framework provides five main optimization targets:
 python optimize_model.py --target drone --model-path path/to/model.pth --model-type deim --model-size s
 ```
 
-#### Optimize a model for edge device deployment:
-
-```bash
-python optimize_model.py --target edge --model-path path/to/model.pth --model-type deim --model-size s
-```
-
-#### Optimize a model for server deployment:
-
-```bash
-python optimize_model.py --target server --model-path path/to/model.pth --model-type deim --model-size s
-```
-
 #### Run benchmarks comparing DEIM models and YOLOv10:
 
 ```bash
 python optimize_model.py --target benchmark --model-path path/to/deim/model.pth --model-type deim
-```
-
-#### Distill knowledge from a large model to a nano model:
-
-```bash
-python optimize_model.py --target distill --teacher-path path/to/large/model.pth --student-path path/to/nano/model.pth --dataset-path path/to/dataset
 ```
 
 ## Optimization Strategies
@@ -435,22 +74,6 @@ Balanced approach for edge devices:
 - Moderate pruning (30% in backbone, 20% in encoder, 10% in decoder)
 - ONNX optimization for better inference
 - TensorRT acceleration if GPU is available
-
-### Server Optimization Strategy
-
-Focuses on maximum accuracy with GPU acceleration:
-- No pruning to maintain accuracy
-- TorchScript export for better deployment
-- ONNX and TensorRT optimization for high throughput
-
-## Knowledge Distillation
-
-The framework includes knowledge distillation capabilities to transfer knowledge from larger teacher models to smaller student models:
-
-- Temperature-based softening of probability distributions
-- Combined cross-entropy and KL-divergence loss
-- Support for feature-level distillation
-- Detection-specific distillation for bounding box regression
 
 ## Benchmarking
 
@@ -481,3 +104,125 @@ The framework is designed to be extensible:
 - [PyTorch](https://pytorch.org/): The deep learning framework used
 - [ONNX](https://onnx.ai/): Open Neural Network Exchange
 - [TensorRT](https://developer.nvidia.com/tensorrt): High-performance deep learning inference optimizer
+
+## TensorRT Optimization and Deployment
+
+This project includes extensive model optimization and deployment features targeting real-time performance on various hardware platforms, from NVIDIA GPUs to low-power embedded systems.
+
+### Installation with Poetry
+
+The project now uses Poetry for dependency management and virtual environment creation:
+
+```bash
+# Install Poetry
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Clone the repository
+git clone https://github.com/yourusername/model-optimization-framework.git
+cd model-optimization-framework
+
+# Install dependencies
+poetry install
+
+# Activate the environment
+poetry shell
+```
+
+### Export to TensorRT
+
+ONNX models can be efficiently converted to TensorRT engines using the provided export scripts:
+
+```bash
+# FP16 precision export
+python scripts/export_trt.py \
+    --onnx-path model.onnx \
+    --engine-path model.engine \
+    --input-shape 1,3,416,416 \
+    --fp16 \
+    --workspace-size 4096
+
+# INT8 calibration with dataset
+python scripts/export_trt_caliber.py \
+    --onnx-path model.onnx \
+    --engine-path model.engine \
+    --input-shape 1,3,416,416 \
+    --int8 \
+    --workspace-size 4096
+```
+
+### Advanced Optimization Techniques
+
+#### Structured Pruning with Layer Sensitivity Analysis
+
+I've implemented a structured pruning approach that analyzes the sensitivity of each layer to determine optimal pruning ratios:
+
+- Backbone layers: Aggressive pruning (up to 60%)
+- Encoder layers: Moderate pruning (up to 40%)
+- Decoder layers: Conservative pruning (up to 20%)
+
+This approach preserves model accuracy while significantly reducing computational requirements.
+
+#### Cluster Weights Quantization
+
+For further model compression, the framework includes cluster-based weight quantization techniques that group similar weights together:
+
+- K-means clustering of weight parameters
+- Shared weight representations
+- Reduced memory footprint while maintaining model expressivity
+
+#### INT8 Calibration with Domain-Specific Data
+
+The calibration process leverages the PlantVillage dataset to ensure accurate INT8 quantization:
+
+- Representative sample selection across all classes
+- Per-layer scaling factors
+- Tensor-specific calibration for both input tensors
+
+#### CUDA Kernel Optimization
+
+I also explored the potential of CUDA-accelerated deformable attention based on cursor’s work—it’s still early, but initial tests suggest a ~2x theoretical speedup for inference-heavy workloads. I haven’t run full integration yet, but it’s a direction I plan to pursue further
+
+### Benchmarking System
+
+The project includes a comprehensive benchmarking framework for performance analysis:
+
+```bash
+python tools/benchmark/custom_trt_benchmark.py --engine_dir /path/to/engines
+```
+
+Key features:
+- Automated latency measurement across batch sizes
+- mAP evaluation on detection datasets
+- JSON result export for easy comparison
+- Hardware utilization profiling
+
+### Drone Platform Optimization
+
+Specific optimizations for low-power drone platforms include:
+
+- Aggressive model pruning with minimal accuracy loss
+- INT8 quantization with drone camera calibration data
+- Latency-focused optimization over throughput
+- Memory footprint reduction for constrained environments
+
+### Performance Results
+
+The optimized DEIM models demonstrate exceptional performance:
+
+- **DEiT-M model (FP16)**: 101 FPS (batch=1), 431 FPS (batch=8) on NVIDIA L4
+- **Accuracy**: 0.52+ mAP on PlantDoc dataset
+- **Stability**: Consistent latency across runs
+
+Both "m" and "x" variants have been tested with FP16 precision. The "x" variant, while theoretically more powerful, showed signs of overfitting in certain configurations. The export process preserves the model's detection capabilities with standardized output signatures.
+
+The optimized models are suitable for deployment in real-time applications, with leading results on the Roboflow leaderboard for real-time object detection.
+
+### Technical Environment
+
+The optimization framework was developed and tested with:
+- TensorRT 10.x
+- CUDA 11.8
+- NVIDIA L4 GPU
+- Poetry 1.6+ for dependency management
+
+Comprehensive performance analysis data is available in the `benchmark_results` directory.

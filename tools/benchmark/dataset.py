@@ -51,6 +51,10 @@ class Dataset(data.Dataset):
         self.size = 640
 
         self.im_path_list = list(glob.glob(os.path.join(img_dir, '*.jpg')))
+        self.im_path_list.extend(list(glob.glob(os.path.join(img_dir, '*.jpeg'))))
+        self.im_path_list.extend(list(glob.glob(os.path.join(img_dir, '*.png'))))
+        
+        print(f"Found {len(self.im_path_list)} images in {img_dir}")
 
         if preprocess is None:
             self.preprocess = T.Compose([
@@ -66,21 +70,42 @@ class Dataset(data.Dataset):
         return len(self.im_path_list)
 
     def __getitem__(self, index):
-        # im = Image.open(self.img_path_list[index]).convert('RGB')
-        im = torchvision.io.read_file(self.im_path_list[index])
-        im = torchvision.io.decode_jpeg(im, mode=torchvision.io.ImageReadMode.RGB, device=self.device)
-        _, h, w = im.shape # c,h,w
+        try:
+            if index >= len(self.im_path_list):
+                index = index % len(self.im_path_list)
+                
+            try:
+                im = torchvision.io.read_file(self.im_path_list[index])
+                im = torchvision.io.decode_jpeg(im, mode=torchvision.io.ImageReadMode.RGB, device=self.device)
+            except Exception as e:
+                print(f"Failed to read image with torchvision.io: {e}")
+                im = Image.open(self.im_path_list[index]).convert('RGB')
+                im = ToTensor()(im).to(self.device)
+                
+            if isinstance(im, torch.Tensor):
+                _, h, w = im.shape  # c,h,w
+            else:
+                w, h = im.size
+                
+            im = self.preprocess(im)
 
-        im = self.preprocess(im)
+            blob = {
+                'images': im,
+                'im_shape': torch.tensor([self.size, self.size]).to(im.device),
+                'scale_factor': torch.tensor([self.size / h, self.size / w]).to(im.device),
+                'orig_target_sizes': torch.tensor([[h, w]]).to(im.device),
+            }
 
-        blob = {
-            'images': im,
-            'im_shape': torch.tensor([self.size, self.size]).to(im.device),
-            'scale_factor': torch.tensor([self.size / h, self.size / w]).to(im.device),
-            'orig_target_sizes': torch.tensor([w, h]).to(im.device),
-        }
-
-        return blob
+            return blob
+        except Exception as e:
+            print(f"Error processing image at index {index}: {e}")
+            default_im = torch.zeros(3, self.size, self.size, device=self.device)
+            return {
+                'images': default_im,
+                'im_shape': torch.tensor([self.size, self.size]).to(self.device),
+                'scale_factor': torch.tensor([1.0, 1.0]).to(self.device),
+                'orig_target_sizes': torch.tensor([[self.size, self.size]]).to(self.device),
+            }
 
     @staticmethod
     def post_process():

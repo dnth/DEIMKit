@@ -85,6 +85,26 @@ class Config(YAMLConfig):
             f"Searched in: {possible_paths}"
         )
 
+    @classmethod
+    def from_file(cls, file_path, **kwargs):
+        """
+        Create a configuration directly from a YAML file path.
+
+        Args:
+            file_path (str): Path to the YAML configuration file.
+            **kwargs: Additional configuration parameters to override.
+
+        Returns:
+            Config: Configuration instance loaded from the file.
+            
+        Raises:
+            FileNotFoundError: If the specified file doesn't exist.
+        """
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Configuration file not found: {file_path}")
+            
+        return cls(file_path, **kwargs)
+
     def __repr__(self):
         """Return a string representation of the configuration."""
         return super().__repr__()

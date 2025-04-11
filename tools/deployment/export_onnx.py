@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../
 import torch
 import torch.nn as nn
 
-from engine.core import YAMLConfig
+from src.deimkit.engine.core import YAMLConfig
 
 
 def main(args, ):
@@ -25,7 +25,7 @@ def main(args, ):
         cfg.yaml_cfg['HGNetv2']['pretrained'] = False
 
     if args.resume:
-        checkpoint = torch.load(args.resume, map_location='cpu')
+        checkpoint = torch.load(args.resume, map_location='cuda')
         if 'ema' in checkpoint:
             state = checkpoint['ema']['module']
         else:
@@ -51,8 +51,8 @@ def main(args, ):
 
     model = Model()
 
-    data = torch.rand(32, 3, 640, 640)
-    size = torch.tensor([[640, 640]])
+    data = torch.rand(32, 3, 416, 416)
+    size = torch.tensor([[416, 416]])
     _ = model(data, size)
 
     dynamic_axes = {

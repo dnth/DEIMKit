@@ -63,6 +63,9 @@ class Exporter:
         model = self.config.model.deploy()
         postprocessor = self.config.postprocessor.deploy()
 
+        # logger.info("Replacing GELU activations with SiLU for TensorRT compatibility")
+        # model = self._replace_gelu_with_silu(model)
+
         # Determine output path if not provided
         if output_path is None:
             output_path = checkpoint_path.replace(".pth", ".onnx")
@@ -92,7 +95,7 @@ class Exporter:
                 height, width = base_size, base_size
 
             # Default to 3 channels (RGB) and batch size of 1
-            input_shape = (1, 3, height, width)
+            input_shape = (16, 3, height, width)
             logger.info(f"Using input shape from config: {input_shape}")
 
         # Create dummy inputs
@@ -116,7 +119,7 @@ class Exporter:
                 input_names=["images", "orig_target_sizes"],
                 output_names=["labels", "boxes", "scores"],
                 dynamic_axes=dynamic_axes,
-                opset_version=20,
+                opset_version=16,
                 do_constant_folding=True,
             )
 
@@ -182,3 +185,33 @@ class Exporter:
             logger.warning(
                 "ONNX simplification skipped: required packages not installed"
             )
+
+    # def _replace_gelu_with_silu(self, model: nn.Module) -> nn.Module:
+    #     """
+    #     Replace GELU activations with SiLU (Swish) for better TensorRT compatibility.
+        
+    #     Args:
+    #         model: The model to modify
+            
+    #     Returns:
+    #         Modified model with GELU replaced by SiLU
+    #     """
+    #     count = 0
+    #     for name, module in list(model.named_modules()):
+    #         if isinstance(module, nn.GELU):
+    #             # Find the parent module
+    #             parent_name = name.rsplit('.', 1)[0] if '.' in name else ''
+    #             attr_name = name.rsplit('.', 1)[1] if '.' in name else name
+                
+    #             # Navigate to parent module
+    #             parent = model
+    #             if parent_name:
+    #                 for part in parent_name.split('.'):
+    #                     parent = getattr(parent, part)
+                
+    #             # Replace GELU with SiLU
+    #             setattr(parent, attr_name, nn.SiLU())
+    #             count += 1
+        
+    #     logger.info(f"Replaced {count} GELU activations with SiLU")
+    #     return model

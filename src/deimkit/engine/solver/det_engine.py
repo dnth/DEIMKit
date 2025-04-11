@@ -20,7 +20,9 @@ from torch.cuda.amp.grad_scaler import GradScaler
 from ..optim import ModelEMA, Warmup
 from ..data import CocoEvaluator
 from ..misc import MetricLogger, SmoothedValue, dist_utils
+import logging
 
+logger = logging.getLogger("DetEngine")
 
 def train_one_epoch(self_lr_scheduler, lr_scheduler, model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
@@ -140,9 +142,20 @@ def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, 
     coco_evaluator.cleanup()
 
     metric_logger = MetricLogger(delimiter="  ")
-    header = 'Test:'
 
     iou_types = coco_evaluator.iou_types
+    
+    # Check if we're using PlantDocEvaluator
+    is_plantdoc = hasattr(coco_evaluator, 'dataset_name') and coco_evaluator.dataset_name == 'plantdoc'
+    if is_plantdoc:
+        print(f"Using PlantDocEvaluator for evaluation")
+        # Print category information from ground truth
+        categories = coco_evaluator.coco_gt.dataset.get('categories', [])
+        print(f"Ground truth has {len(categories)} categories:")
+        for cat in categories[:10]:  # Show first 10 to avoid output clutter
+            print(f"  Category {cat['id']}: {cat.get('name', 'unnamed')}")
+    else:
+        print(f"Using regular CocoEvaluator for evaluation")
 
     # Add progress bar for evaluation
     pbar = tqdm(total=len(data_loader), desc='Evaluating', leave=True)
@@ -151,11 +164,20 @@ def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, 
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
-        outputs = model(samples)
+        orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0).to(device)
 
-        orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
+        logger.info(f"samples: {samples.shape}")
 
-        results = postprocessor(outputs, orig_target_sizes)
+        results = model(samples)
+
+        # Process with postprocessor
+        # results = postprocessor(outputs, orig_target_sizes)
+        
+        # # Debug information
+        # print(f"Ground truth: {[t['labels'] for t in targets]}")
+        # print(f"Predictions: {[list(r['labels']) for r in results]}")
+        # print(f"Scores: {[list(r['scores']) for r in results]}")
+        
 
         res = {target['image_id'].item(): output for target, output in zip(targets, results)}
         if coco_evaluator is not None:

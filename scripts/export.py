@@ -1,5 +1,4 @@
 import argparse
-from pathlib import Path
 from deimkit.exporter import Exporter
 from deimkit.config import Config
 from loguru import logger
@@ -25,6 +24,12 @@ def main():
         default="model.onnx",
         help="Output path for ONNX model (default: model.onnx)"
     )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=1,
+        help="Batch size for ONNX export (default: 1)"
+    )
     
     # Parse arguments
     args = parser.parse_args()
@@ -36,7 +41,8 @@ def main():
     # Export model to ONNX
     output_path = exporter.to_onnx(
         checkpoint_path=args.checkpoint,
-        output_path=args.output
+        output_path=args.output,
+        input_shape=(args.batch_size, 3, 416, 416)  # Use provided batch size
     )
     
     logger.info(f"Model successfully exported to: {output_path}")

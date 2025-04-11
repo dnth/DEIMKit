@@ -18,18 +18,35 @@ from tqdm import tqdm
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Argument Parser Example')
+    parser = argparse.ArgumentParser(description='TensorRT Benchmark')
     parser.add_argument('--COCO_dir',
                         type=str,
                         default='/data/COCO2017/val2017',
-                        help="Directory for images to perform inference on.")
+                        help="Directory for COCO validation images.")
     parser.add_argument("--engine_dir",
                         type=str,
                         help="Directory containing model engine files.")
+    parser.add_argument('--infer_dir',
+                        type=str,
+                        default=None,
+                        help="Directory for inference images. If not provided, will use COCO_dir.")
     parser.add_argument('--busy',
                         action='store_true',
                         help="Flag to indicate that other processes may be running.")
+    parser.add_argument('--iterations',
+                        type=int,
+                        default=1000,
+                        help="Number of iterations for benchmarking.")
+    parser.add_argument('--warmup',
+                        type=int,
+                        default=1000,
+                        help="Number of warmup iterations.")
     args = parser.parse_args()
+    
+    # If infer_dir is not provided, use COCO_dir
+    if args.infer_dir is None:
+        args.infer_dir = args.COCO_dir
+        
     return args
 
 class TRTInference(object):
@@ -102,13 +119,29 @@ class TRTInference(object):
         return bindings
 
     def run_torch(self, blob):
+        # Handle inputs
         for n in self.input_names:
-            if self.bindings[n].shape != blob[n].shape:
-                self.context.set_input_shape(n, blob[n].shape)
-                self.bindings[n] = self.bindings[n]._replace(shape=blob[n].shape)
+            if n not in blob:
+                continue
+            
+            # Handle orig_target_sizes specially - needs to be [batch_size, 2]
+            if n == 'orig_target_sizes' and len(blob[n].shape) == 1:
+                # Reshape from [2] to [1, 2] to match expected dimensions
+                blob[n] = blob[n].reshape(1, -1)
+            
+            # Check for shape mismatch
+            if n in self.bindings and self.bindings[n].shape != blob[n].shape:
+                # Only set dynamic shapes for inputs when needed
+                if self.engine.get_tensor_mode(n) == trt.TensorIOMode.INPUT:
+                    self.context.set_input_shape(n, blob[n].shape)
+                    # Update binding shape
+                    self.bindings[n] = self.bindings[n]._replace(shape=blob[n].shape)
 
-        self.bindings_addr.update({n: blob[n].data_ptr() for n in self.input_names})
+        # Update binding addresses for inputs and execute
+        self.bindings_addr.update({n: blob[n].data_ptr() for n in self.input_names if n in blob})
         self.context.execute_v2(list(self.bindings_addr.values()))
+        
+        # Get outputs
         outputs = {n: self.bindings[n].data for n in self.output_names}
         return outputs
 
@@ -151,10 +184,85 @@ class TRTInference(object):
             self.time_profile.reset()
             with self.time_profile_dataset:
                 img = blob[i]
-                if img['images'] is not None:
-                    img['image'] = img['input'] = img['images'].unsqueeze(0)
+                
+                # Debug the first item
+                if i == 0:
+                    print("\n----- Debugging first image tensor shapes -----")
+                    for k, v in img.items():
+                        if isinstance(v, torch.Tensor):
+                            print(f"{k}: shape={v.shape}, dtype={v.dtype}")
+                
+                # Ensure images has the correct 4D shape with batch dimension [batch, channels, height, width]
+                if 'images' in img and img['images'] is not None:
+                    # Add batch dimension if needed
+                    if len(img['images'].shape) == 3:  # [C, H, W]
+                        img['images'] = img['images'].unsqueeze(0)  # [1, C, H, W]
+                    
+                    # Make sure images has the right size expected by the engine (416x416)
+                    current_size = img['images'].shape[-2:]
+                    target_size = (416, 416)
+                    if current_size != target_size:
+                        # Resize to match engine's expected size
+                        if i == 0:
+                            print(f"Resizing images from {current_size} to {target_size}")
+                        
+                        # Use interpolate for simple resizing
+                        img['images'] = torch.nn.functional.interpolate(
+                            img['images'], 
+                            size=target_size, 
+                            mode='bilinear', 
+                            align_corners=False
+                        )
+                    
+                    img['image'] = img['input'] = img['images']
+                elif 'image' in img and img['image'] is not None:
+                    # Handle if 'image' exists but 'images' doesn't
+                    if len(img['image'].shape) == 3:  # [C, H, W]
+                        img['image'] = img['image'].unsqueeze(0)  # [1, C, H, W]
+                    
+                    # Resize if needed
+                    current_size = img['image'].shape[-2:]
+                    target_size = (416, 416)
+                    if current_size != target_size:
+                        img['image'] = torch.nn.functional.interpolate(
+                            img['image'], 
+                            size=target_size, 
+                            mode='bilinear', 
+                            align_corners=False
+                        )
+                    
+                    img['images'] = img['input'] = img['image']
                 else:
-                    img['images'] = img['input'] = img['image'].unsqueeze(0)
+                    print(f"Warning: No image tensor found in dataset item {i}")
+                    continue
+                
+                # Ensure im_shape and scale_factor are present with correct size (416)
+                if 'im_shape' not in img or img['im_shape'] is None:
+                    img['im_shape'] = torch.tensor([416, 416]).to(img['images'].device)
+                
+                if 'scale_factor' not in img or img['scale_factor'] is None:
+                    img['scale_factor'] = torch.tensor([1.0, 1.0]).to(img['images'].device)
+                
+                # Ensure orig_target_sizes is a 2D tensor [batch_size, 2] with correct size (416)
+                if 'orig_target_sizes' not in img or img['orig_target_sizes'] is None:
+                    img['orig_target_sizes'] = torch.tensor([[416, 416]]).to(img['images'].device)
+                elif len(img['orig_target_sizes'].shape) == 1:
+                    img['orig_target_sizes'] = img['orig_target_sizes'].reshape(1, -1)
+                
+                # Debug tensor shapes after processing
+                if i == 0:
+                    print("\n----- After processing -----")
+                    for k, v in img.items():
+                        if isinstance(v, torch.Tensor):
+                            print(f"{k}: shape={v.shape}, dtype={v.dtype}")
+                    
+                    # Debug TensorRT engine expected shapes
+                    print("\n----- TensorRT Engine Expected Shapes -----")
+                    for name in self.input_names:
+                        shape = self.engine.get_tensor_shape(name)
+                        dtype = trt.nptype(self.engine.get_tensor_dtype(name))
+                        print(f"Engine expects {name}: shape={shape}, dtype={dtype}")
+            
             with self.time_profile:
                 _ = self(img)
             times.append(self.time_profile.total)
@@ -169,28 +277,58 @@ class TRTInference(object):
 
 def main():
     FLAGS = parse_args()
+    
+    # Check if directories exist
+    if not os.path.exists(FLAGS.infer_dir):
+        print(f"Error: Inference directory not found: {FLAGS.infer_dir}")
+        return 1
+        
+    if not os.path.exists(FLAGS.engine_dir):
+        print(f"Error: Engine directory not found: {FLAGS.engine_dir}")
+        return 1
+    
+    print(f"Loading dataset from: {FLAGS.infer_dir}")
     dataset = Dataset(FLAGS.infer_dir)
-    im = torch.ones(1, 3, 640, 640).cuda()
+    
+    # Create dummy input tensor
+    im = torch.ones(1, 3, 416, 416).cuda()
     blob = {
             'image': im,
             'images': im,
             'input': im,
-            'im_shape': torch.tensor([640, 640]).to(im.device),
+            'im_shape': torch.tensor([416, 416]).to(im.device),
             'scale_factor': torch.tensor([1, 1]).to(im.device),
-            'orig_target_sizes': torch.tensor([640, 640]).to(im.device),
+            'orig_target_sizes': torch.tensor([[416, 416]]).to(im.device),  # Correct dimensions for input image
         }
 
-    engine_files = glob.glob(os.path.join(FLAGS.models_dir, "*.engine"))
+    # Find all engine files
+    engine_files = []
+    if os.path.isfile(FLAGS.engine_dir) and FLAGS.engine_dir.endswith('.engine'):
+        engine_files = [FLAGS.engine_dir]
+    else:
+        engine_files = glob.glob(os.path.join(FLAGS.engine_dir, "*.engine"))
+    
+    if not engine_files:
+        print(f"Error: No engine files found in {FLAGS.engine_dir}")
+        return 1
+        
+    print(f"Found {len(engine_files)} engine file(s)")
     results = []
 
     for engine_file in engine_files:
         print(f"Testing engine: {engine_file}")
         model = TRTInference(engine_file, max_batch_size=1, verbose=False)
         model.init()
-        model.warmup(blob, 1000)
+        
+        # Warmup
+        print(f"Warming up for {FLAGS.warmup} iterations...")
+        model.warmup(blob, FLAGS.warmup)
+        
+        # Benchmark
+        print(f"Running benchmark for {FLAGS.iterations} iterations...")
         t = []
-        for _ in range(1):
-            t.append(model.speed(dataset, 1000, FLAGS.busy))
+        for _ in range(1):  # Run once for stability
+            t.append(model.speed(dataset, FLAGS.iterations, FLAGS.busy))
         avg_latency = 1000 * torch.tensor(t).mean()
         results.append((engine_file, avg_latency))
         print(f"Engine: {engine_file}, Latency: {avg_latency:.2f} ms")
@@ -200,8 +338,11 @@ def main():
         time.sleep(1)
 
     sorted_results = sorted(results, key=lambda x: x[1])
+    print("\n===== BENCHMARK RESULTS (SORTED BY LATENCY) =====")
     for engine_file, latency in sorted_results:
-        print(f"Engine: {engine_file}, Latency: {latency:.2f} ms")
+        print(f"Engine: {os.path.basename(engine_file)}, Latency: {latency:.2f} ms, FPS: {1000/latency:.2f}")
+    
+    return 0
 
 if __name__ == '__main__':
     main()

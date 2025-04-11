@@ -58,6 +58,11 @@ class DeployableModel(nn.Module):
         self.postprocessor = cfg.postprocessor.deploy()
 
     def forward(self, images, orig_target_sizes):
+        # if orig_target_sizes is None:
+        #     w, h = images.shape[3], images.shape[2]
+        #     logger.info(f"Predictor Forward operation: {w}, {h}")
+        #     orig_target_sizes = torch.tensor([[w, h]])
+        
         outputs = self.model(images)
         outputs = self.postprocessor(outputs, orig_target_sizes)
         return outputs
