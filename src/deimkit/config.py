@@ -1,7 +1,7 @@
 import os
 import pprint
 
-import pkg_resources
+from importlib import resources as _resources
 
 from .engine.core import BaseConfig, YAMLConfig
 
@@ -54,12 +54,16 @@ class Config(YAMLConfig):
         # Try to find the config file in several possible locations
         possible_paths = [
             # Option 1: Look in the package's installed configs directory
-            pkg_resources.resource_filename(
-                "deimkit", f"configs/{model_name}_coco.yml"
-            ),
-            pkg_resources.resource_filename(
-                "deimkit", f"configs/deim_dfine/{model_name}_coco.yml"
-            ),
+            os.fspath(
+                _resources.files("deimkit").joinpath(
+                    f"configs/{model_name}_coco.yml"
+                )
+             ),
+             os.fspath(
+                _resources.files("deimkit").joinpath(
+                    f"configs/deim_dfine/{model_name}_coco.yml"
+                )
+             ),
             # Option 2: Look relative to the current working directory
             # os.path.join(os.getcwd(), f'configs/{model_name}_coco.yml'),
             # os.path.join(os.getcwd(), f'configs/deim_dfine/{model_name}_coco.yml'),
